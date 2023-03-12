@@ -13,8 +13,8 @@ Mission Runner-API is an easy to use web API for creating EVE Online mission co-
 
 Mission Co-op is refering to a type of partnership common in NPC Mission Runner group in EVE Online. Some player use multiple characters specialized in social skills
 to accepts as many mission as possible (also called mission publisher), and ask other player to complete with their characters specialized in wepon skills
-to complete the mission (also called mission runner) with rewords. Limit by the location shareing system and the EVE Online location API ([ESI Bookmark API](https://esi.evetech.net/ui/#/Bookmarks))
-Additional system is needed to track the mission published/accepted/acomplished by different player.
+to complete the mission (also called mission runner) with rewords. Limit by the location shareing system and the EVE Online location API ([ESI Bookmark API](https://esi.evetech.net/ui/#/Bookmarks)),
+additional system is needed to track the mission published/accepted/acomplished by different player.
 
 Mission Runner API provides all the base features required to implement a mission co-op project:
 

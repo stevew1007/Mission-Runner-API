@@ -1,6 +1,7 @@
 from apifairy.decorators import other_responses
-from flask import Blueprint, abort
 from apifairy import authenticate, body, response
+
+from flask import Blueprint, abort
 
 from api import db
 from api.models import User, Account, ChangeLog
@@ -135,7 +136,7 @@ def put(data, id):
                     pagination_schema=StringPaginationSchema)
 @other_responses({404: 'User not found'})
 def account_all():
-    """Retrieve all accounts.
+    """Retrieve all accounts
     **Note**: User can only view the account owned by himself.
     """
     user = token_auth.current_user()

@@ -63,10 +63,7 @@ class UserSchema(ma.SQLAlchemySchema):
     class Meta:
         model = User
         ordered = True
-        description = "This is the primrary schema that represent an user. \nSince most of the player \
-            are multiboxing, the user represent the responsible individuals for all the accounts \
-            recorded in the system under his name. The user is also accepts mission on mission-runner's \
-            behalf as well as tracking the bounty that he deserves."
+        description = "Schema that represent an user."
 
     id = ma.auto_field(dump_only=True, description = "User ID number")
     url = ma.String(dump_only=True, description = "URL to get user information")
