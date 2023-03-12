@@ -9,6 +9,10 @@ class Role(Enum):
     def isValid(value:str):
         allowed = [r.value for r in Role]
         return value in allowed
+    
+    @staticmethod
+    def to_str():
+        return ",".join([r.value for r in Role])
 
 class Action(Enum):
     INSERT = 'insert'

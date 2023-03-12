@@ -104,6 +104,8 @@ def put(data):
 
     # Save data
     db.session.commit()
+
+    
     return user
 
 

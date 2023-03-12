@@ -69,17 +69,18 @@ class UserSchema(ma.SQLAlchemySchema):
             behalf as well as tracking the bounty that he deserves."
 
     id = ma.auto_field(dump_only=True, description = "User ID number")
-    url = ma.String(dump_only=True)
+    url = ma.String(dump_only=True, description = "URL to get user information")
     username = ma.auto_field(required=True, validate=validate.Length(min=3, max=64))
     email = ma.auto_field(required=True, validate=[validate.Length(max=120), validate.Email()])
     im_number = ma.auto_field(required=True, validate=[validate.Length(max=120)], description = "Typically QQ number by Tencent")
     password = ma.String(required=True, load_only=True, validate=validate.Length(min=3))
-    role = ma.String(dump_only=True, validate=[validate.Length(max=120)], description = "Typically QQ number by Tencent")
-    avatar_url = ma.String(dump_only=True)
+    role = ma.String(dump_only=True, validate=[validate.Length(max=120)], description = f"Clearance for each user, includes: {Role.to_str()}")
+    avatar_url = ma.String(dump_only=True, description = "Using gravatar for the email address")
     # about_me = ma.auto_field()
-    birthday = ma.auto_field(dump_only=True)
-    last_seen = ma.auto_field(dump_only=True)
-    activated = ma.auto_field(dump_only=True)
+    birthday = ma.auto_field(dump_only=True, description = "Date when user registered.")
+    last_seen = ma.auto_field(dump_only=True, description = "Timestamp for user's last activity.")
+    activated = ma.auto_field(dump_only=True, description = "User can interactive with others only after admin has verified the user account.")
+    # accounts = ma.Nested(AccountSchema, dump_only=True, description = "All the account that is owned by this user.")
     # account_url = ma.URLFor('account.user_all', values={'id': '<id>'}, dump_only=True)
 
     @validates('username')
@@ -161,21 +162,17 @@ class AccountSchema(ma.SQLAlchemySchema):
         ordered = True
 
     id = ma.auto_field(dump_only=True)
-    url = ma.String(dump_only=True)
-    name = ma.auto_field(required=True, validate=validate.Length(min=3, max=64))
-    # email = ma.auto_field(required=True, validate=[validate.Length(max=120), validate.Email()])
-    # im_number = ma.auto_field(required=True, validate=[validate.Length(max=120)])
-    # password = ma.String(required=True, load_only=True, validate=validate.Length(min=3))
-    # role = ma.String(dump_only=True, validate=[validate.Length(max=120)])
-    # avatar_url = ma.String(dump_only=True)
-    # # about_me = ma.auto_field()
-    created = ma.auto_field(dump_only=True)
+    url = ma.String(dump_only=True, description = "URL to get account information")
+    name = ma.auto_field(required=True, validate=validate.Length(min=3, max=64), description = "Character name which accepts & publish the mission. Use this name to track the owner of the mission.")
+    created = ma.auto_field(dump_only=True, description = "Date when account is registered.")
     # last_seen = ma.auto_field(dump_only=True)
-    activated = ma.auto_field(dump_only=True)
-    lp_point = ma.auto_field()
-    owner = ma.Nested(UserSchema, dump_only=True)
+    activated = ma.auto_field(dump_only=True, description = "Account can publish mission only after admin has verified the user account.")
+    lp_point = ma.auto_field(description = "Field that help player to track the lp point they have on each account.")
+    owner = ma.Nested(UserSchema, dump_only=True, description = "User who is responsible for this account.")
     # missions_published
-    
+
+class UpdateOwnerShema(AccountSchema):
+    owner = ma.Nested(UserSchema)
 
 # class PostSchema(ma.SQLAlchemySchema):
 #     class Meta:

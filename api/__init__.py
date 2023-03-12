@@ -1,22 +1,27 @@
 """
-Welcome to the documentation for the Mission Runner API!
+Welcome to the documentation for Mission Runner API!
 
 This project is written in Python, with the
-[Flask](https://flask.palletsprojects.com/) web framework. This documentation
-is generated automatically using
-the [APIFairy](https://github.com/miguelgrinberg/apifairy) Flask extension.
+[Flask](https://flask.palletsprojects.com/) web framework, modified from Miguel Grinberg's [microblog-api](https://github.com/miguelgrinberg/microblog-api). 
+This documentation is generated automatically using the [APIFairy](https://github.com/miguelgrinberg/apifairy) Flask extension.
 
 ## Introduction
 
-Mission Runner-API is an easy to use web API for creating EVE Online mission co-op bounty tracking system. In a typical mission co-operation, 
+Mission Runner-API is an easy to use web API for creating EVE Online mission co-op bounty tracking system. 
 
-Microblog API provides all the base features required to implement a
-microblogging project:
+### Mission Co-operation
+
+Mission Co-op is refering to a type of partnership common in NPC Mission Runner group in EVE Online. Some player use multiple characters specialized in social skills
+to accepts as many mission as possible (also called mission publisher), and ask other player to complete with their characters specialized in wepon skills
+to complete the mission (also called mission runner) with rewords. Limit by the location shareing system and the EVE Online location API ([ESI Bookmark API](https://esi.evetech.net/ui/#/Bookmarks))
+Additional system is needed to track the mission published/accepted/acomplished by different player.
+
+Mission Runner API provides all the base features required to implement a mission co-op project:
 
 - User registration, login and logout
 - Password recovery flow with reset emails
-- Post creation and deletion
-- Follow and unfollow users
+- Account registration (without ESI) and loyalty point (LP) tracking
+- Mission publishing and entire life cycle
 - Feed with posts from followed users
 - Pagination
 - Option to disable authentication during development

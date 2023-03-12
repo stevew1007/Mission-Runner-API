@@ -5,7 +5,7 @@ from apifairy import authenticate, body, response
 from api import db
 from api.models import User, Account, ChangeLog
 from api.enums import Action
-from api.schemas import UserSchema, UpdateUserSchema, EmptySchema, AccountSchema
+from api.schemas import UserSchema, UpdateUserSchema, EmptySchema, AccountSchema, StringPaginationSchema
 from api.auth import token_auth
 from api.decorators import paginated_response
 
@@ -15,6 +15,7 @@ users_schema = UserSchema(many=True)
 update_user_schema = UpdateUserSchema(partial=True)
 account_schema = AccountSchema()
 accounts_schema = AccountSchema(many=True)
+update_account_schema = AccountSchema(partial=True)
 
 @accounts.route('/accounts', methods=['POST'])
 @authenticate(token_auth)
@@ -22,7 +23,9 @@ accounts_schema = AccountSchema(many=True)
 @response(account_schema, 201)
 def new(args):
     """Register a new account
-    Account is registered under the logined user. Only admin is allowed to add account for other user.
+
+    Account is registered under the logined user. 
+    **Note**: Only admin can edit account owned by other user.
     """
     # Issuer
     user = token_auth.current_user()
@@ -51,20 +54,93 @@ def new(args):
 @accounts.route('/accounts/<int:id>', methods=['GET'])
 @authenticate(token_auth)
 @response(account_schema)
-@other_responses({404: 'Account not found'})
+@other_responses({401: 'User cannot access account info from others', 404: 'Account not found'})
 def get(id):
-    """Retrieve a account by id"""
-    return db.session.get(Account, id) or abort(404)
+    """Retrieve a account by id
+    **Note**: User can only view the account owned by himself.
+    """
 
+    user = token_auth.current_user()
+    account = db.session.get(Account, id) or abort(404)
+
+    if account.owner_id != user.id:
+        abort(401)
+
+    return account
 
 @accounts.route('/accounts/<account_name>', methods=['GET'])
 @authenticate(token_auth)
 @response(account_schema)
 @other_responses({404: 'User not found'})
 def get_by_username(account_name):
-    """Retrieve a account by name"""
-    return db.session.scalar(Account.select().filter_by(name=account_name)) or \
+    """Retrieve a account by name
+    **Note**: User can only view the account owned by himself.
+    """
+
+    user = token_auth.current_user()
+    account = db.session.scalar(Account.select().filter_by(name=account_name)) or \
         abort(404)
+    
+    if account.owner_id != user.id:
+        abort(401)
+
+    return account
+
+@accounts.route('/accounts/<int:id>', methods=['PUT'])
+@authenticate(token_auth)
+@body(update_account_schema)
+@response(account_schema)
+@other_responses({401: 'User cannot edit account info for others', 404: 'Account not found'})
+def put(data, id):
+    """Edit account information
+    **Note**: User can only edit account info for account that belong to him
+    """
+
+    # Issuer
+    user = token_auth.current_user()
+
+    # Setup
+    account = db.session.get(Account, id) or abort(404)
+    prev = { key: getattr(account, key) for key in dict(data).keys()}
+
+    # Gatekeeper
+    if account.owner_id != user.id:
+        abort(401)
+
+    # Modification
+    account.update(data)
+
+    # Track changes
+    for key in prev.keys():
+        if getattr(account, key) is not None:
+            change = ChangeLog(
+                object_type=type(user).__name__,
+                object_id = user.id,
+                operation=Action.UPDATE.value,
+                requester_id=user.id,
+                attribute_name=key,
+                old_value=prev[key],
+                new_value=getattr(account, key)
+            )
+            db.session.add(change)
+
+    # Save data
+    db.session.commit()
+    return account
+
+@accounts.route('/accounts/all', methods=['GET'])
+@authenticate(token_auth)
+@paginated_response(accounts_schema, order_by=Account.id,
+                    order_direction='asc',
+                    pagination_schema=StringPaginationSchema)
+@other_responses({404: 'User not found'})
+def account_all():
+    """Retrieve all accounts.
+    **Note**: User can only view the account owned by himself.
+    """
+    user = token_auth.current_user()
+    return user.accounts.select()
+
 
 
 # @users.route('/me', methods=['GET'])
