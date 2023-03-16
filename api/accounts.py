@@ -6,7 +6,7 @@ from flask import Blueprint, abort
 from api import db
 from api.models import User, Account, ChangeLog
 from api.enums import Action
-from api.schemas import UserSchema, UpdateUserSchema, EmptySchema, AccountSchema, StringPaginationSchema
+from api.schemas import UserSchema, UpdateUserSchema, AccountSchema, StringPaginationSchema
 from api.auth import token_auth
 from api.decorators import paginated_response
 

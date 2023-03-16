@@ -160,7 +160,7 @@ class AccountSchema(ma.SQLAlchemySchema):
 
     id = ma.auto_field(dump_only=True)
     url = ma.String(dump_only=True, description = "URL to get account information")
-    name = ma.auto_field(required=True, validate=validate.Length(min=3, max=64), description = "Character name which accepts & publish the mission. Use this name to track the owner of the mission.")
+    name = ma.auto_field(required=True, validate=validate.Length(min=3, max=64), description = "Character name which publish the mission. Use this name to track the owner of the mission.")
     created = ma.auto_field(dump_only=True, description = "Date when account is registered.")
     # last_seen = ma.auto_field(dump_only=True)
     activated = ma.auto_field(dump_only=True, description = "Account can publish mission only after admin has verified the user account.")
@@ -171,6 +171,32 @@ class AccountSchema(ma.SQLAlchemySchema):
 class UpdateOwnerShema(AccountSchema):
     owner = ma.Nested(UserSchema)
 
+class MissionSchema(ma.SQLAlchemySchema):
+    class Meta:
+        model = Mission
+        ordered = True
+    id = ma.auto_field(dump_only=True)
+    url = ma.String(dump_only=True, description = "URL to get mission information")
+    title = ma.auto_field(required=True, validate=validate.Length(min=3, max=64), description = "The description of the mission.")
+    galaxy = ma.auto_field(dump_only=True, required=True, description = "The Mission Galaxy take place. Saved as the location info is copied from game")
+    published = ma.auto_field(dump_only=True, description = "Date when the the mission is published")
+    created = ma.auto_field(description = "Date when the the location is saved. Saved as the location info is copied from game")
+    expired = ma.auto_field(description = "Date when the mission no longer avaiable.")
+    bounty = ma.auto_field(description = "The reward mission runner will receive for complete the mission.")
+    status = ma.auto_field(dump_only=True, description = "Current status of the mission")
+    publisher = ma.Nested(AccountSchema, description = "Account that publishes this mission.")
+
+    @validates('status')
+    def validate_status(self, value):
+        allowed_status = [r.value for r in Role]
+        # user = token_auth.current_user()
+        if value not in allowed_status:
+            raise ValueError(f"Invalid role: {value}. Allowed roles are {', '.join(allowed_roles)}.")
+        if user is not None:
+            if not user.is_admin():
+                raise PermissionError("Only administrator can update user role")
+        else:
+            raise PermissionError("Only administrator can update user role")
 # class PostSchema(ma.SQLAlchemySchema):
 #     class Meta:
 #         model = Post

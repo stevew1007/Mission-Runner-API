@@ -243,7 +243,8 @@ class Mission(Updateable, db.Model):
     # Mission Related
     title: so.Mapped[str] = so.mapped_column(sa.String(), nullable=False)
     galaxy: so.Mapped[str] = so.mapped_column(sa.String(), nullable=False)
-    created: so.Mapped[datetime] = so.mapped_column(default=datetime.utcnow)
+    published: so.Mapped[datetime] = so.mapped_column(default=datetime.utcnow)
+    created: so.Mapped[datetime]
     expired: so.Mapped[datetime]
     bounty: so.Mapped[int] = so.mapped_column(nullable=False)
      
