@@ -39,6 +39,8 @@ def create_app(config_class=Config):
     app.register_blueprint(users, url_prefix='/api')
     from api.accounts import accounts
     app.register_blueprint(accounts, url_prefix='/api')
+    from api.mission import missions
+    app.register_blueprint(missions, url_prefix='/api')
     from api.admin import admin
     app.register_blueprint(admin, url_prefix='/api/admin')
 

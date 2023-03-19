@@ -4,18 +4,19 @@ from apifairy import authenticate, body, response
 from flask import Blueprint, abort
 
 from api import db
-from api.models import User, Account, ChangeLog, Mission
+from api.models import Account, ChangeLog, Mission
 from api.enums import Action, Status, Role
-from api.schemas import UserSchema, UpdateUserSchema, AccountSchema, DateTimePaginationSchema, MissionSchema, EmptySchema
+from api.schemas import AccountSchema, DateTimePaginationSchema,\
+    MissionSchema, EmptySchema
 from api.auth import token_auth
 from api.decorators import paginated_response
 
 missions = Blueprint('missions', __name__)
-user_schema = UserSchema()
-users_schema = UserSchema(many=True)
-update_user_schema = UpdateUserSchema(partial=True)
-account_schema = AccountSchema()
-accounts_schema = AccountSchema(many=True)
+# user_schema = UserSchema()
+# users_schema = UserSchema(many=True)
+# update_user_schema = UpdateUserSchema(partial=True)
+# account_schema = AccountSchema()
+# accounts_schema = AccountSchema(many=True)
 mission_schema = MissionSchema()
 missions_schema = MissionSchema(many=True)
 update_account_schema = AccountSchema(partial=True)
@@ -25,10 +26,13 @@ update_account_schema = AccountSchema(partial=True)
 @authenticate(token_auth)
 @body(mission_schema)
 @response(mission_schema, 201)
-@other_responses({401: 'User cannot edit account info for others', 403: 'Account is not activated', 404: 'Account not found'})
+@other_responses({401: 'User cannot edit account info for others',
+                  403: 'Account is not activated',
+                  404: 'Account not found'})
 def publish(args, id):
-    """Publish a mission from a account
-    **Note**: User can only publish mission from an activated account that belong to him
+    """Publish a mission from account
+    **Note**: User can only publish mission
+     from an activated account that belongs to him
     """
 
     # Issuer
@@ -51,8 +55,8 @@ def publish(args, id):
 
     # Track changes
     change = ChangeLog(
-        object_type=type(user).__name__,
-        object_id = user.id,
+        object_type=type(mission).__name__,
+        object_id=mission.id,
         operation=Action.INSERT.value,
         requester_id=user.id,
         attribute_name='',
@@ -76,9 +80,9 @@ def get(id):
     return db.session.get(Mission, id) or abort(404)
 
 
-@missions.route('/mission/<galaxy>', method=['GET'])
+@missions.route('/mission/<galaxy>', methods=['GET'])
 @authenticate(token_auth)
-@paginated_response(missions_schema, order_by=Mission.created, 
+@paginated_response(missions_schema, order_by=Mission.created,
                     order_direction='desc',
                     pagination_schema=DateTimePaginationSchema)
 @other_responses({404: 'Mission not found'})
@@ -91,28 +95,27 @@ def get_byGalaxy(galaxy):
 
 @missions.route('/accounts/<int:id>/missions', methods=['GET'])
 @authenticate(token_auth)
-@paginated_response(missions_schema, order_by=Mission.created, 
+@paginated_response(missions_schema, order_by=Mission.created,
                     order_direction='desc',
                     pagination_schema=DateTimePaginationSchema)
 @other_responses({404: 'Account not found'})
 def get_byOwner(id):
-    """Retrieve list of missions published by this account
+    """Retrieve missions published by account
     """
     account = db.session.get(Account, id) or abort(404)
     return account.missions_published.select()
 
 
 @missions.route('/missions/<int:id>/accepts', methods=['POST'])
-@authenticate(token_auth, role=[Role.MISSION_RUNNER])
+@authenticate(token_auth, role=[Role.MISSION_RUNNER.value, Role.ADMIN.value])
 @response(EmptySchema, status_code=204,
           description='User accepts mission successfully')
 @other_responses({400: "Mission already accepted by others",
-                  403: "User cannot accepts mission published by himself",
-                  409: "User already accepts the mission",
+                  403: "This mission cannot be accepted",
                   404: 'Mission not found'})
 def accepts(id):
-     """Accepts a mission
-    **Note**: Only activated user can accepts mission.
+    """Accepts a mission
+    **Note**: Only mission runner or admin can accepts mission.
     """
 
     # Issuer
@@ -120,32 +123,43 @@ def accepts(id):
 
     # Setup
     mission = db.session.get(Mission, id) or abort(404)
-    prev_user = mission.runner
+    prev = {
+        'runner': mission.runner,
+        'status': mission.status
+    }
+    data = {
+        'runner_id': user,
+        'status': Status.ACCEPTED.value
+    }
 
     # Gatekeeper
-    if mission.runner is not None:
-        if mission.runner_id == user.id:
-            abort(409)
+    if mission.status in \
+        [Status.DRAFT.value, Status.ACCEPTED.value,
+         Status.COMPLETED.value, Status.ARCHIVED.value]:
+        if mission.runner is not None:
+            if mission.runner_id != user.id:
+                abort(400)
+            if mission.publisher.owner_id == user.id:
+                abort(403)
         else:
-            abort(400)
-    if mission.publisher.owner_id == user.id:
-        abort(403)
+            abort(403)
 
     # Modification
-    mission.runner = user
-    mission.status = Status.ACCEPTED.value
+    mission.update(data)
 
     # Track changes
-    change = ChangeLog(
-        object_type=type(mission).__name__,
-        object_id = mission.id,
-        operation=Action.UPDATE.value,
-        requester_id=user.id,
-        attribute_name='runner',
-        old_value=prev,
-        new_value=account.activated
-    )
+    for key in dict(data).keys():
+        if getattr(user, key) is not None:
+            change = ChangeLog(
+                object_type=type(mission).__name__,
+                object_id=mission.id,
+                operation=Action.UPDATE.value,
+                requester_id=user.id,
+                attribute_name=key,
+                old_value=prev[key],
+                new_value=getattr(user, key)
+            )
+            db.session.add(change)
 
     # Save data
     db.session.commit()
-    return account
