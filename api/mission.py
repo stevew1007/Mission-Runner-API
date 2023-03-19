@@ -20,6 +20,7 @@ mission_schema = MissionSchema()
 missions_schema = MissionSchema(many=True)
 update_account_schema = AccountSchema(partial=True)
 
+
 @missions.route('/accounts/<int:id>/publish_mission', methods=['POST'])
 @authenticate(token_auth)
 @body(mission_schema)
@@ -64,6 +65,7 @@ def publish(args, id):
     db.session.commit()
     return account
 
+
 @missions.route('/missions/<int:id>', methods=['GET'])
 @authenticate(token_auth)
 @response(mission_schema)
@@ -72,6 +74,7 @@ def get(id):
     """Retrieve a mission by id
     """
     return db.session.get(Mission, id) or abort(404)
+
 
 @missions.route('/mission/<galaxy>', method=['GET'])
 @authenticate(token_auth)
@@ -85,6 +88,7 @@ def get_byGalaxy(galaxy):
     return db.session.scalar(Mission.select().filter_by(galaxy=galaxy)) or \
         abort(404)
 
+
 @missions.route('/accounts/<int:id>/missions', methods=['GET'])
 @authenticate(token_auth)
 @paginated_response(missions_schema, order_by=Mission.created, 
@@ -97,11 +101,15 @@ def get_byOwner(id):
     account = db.session.get(Account, id) or abort(404)
     return account.missions_published.select()
 
+
 @missions.route('/missions/<int:id>/accepts', methods=['POST'])
 @authenticate(token_auth, role=[Role.MISSION_RUNNER])
 @response(EmptySchema, status_code=204,
           description='User accepts mission successfully')
-@other_responses({400: "Mission already accepted by others", 403: "User cannot accepts mission published by himself", 409: "User already accepts the mission", 404: 'Mission not found'})
+@other_responses({400: "Mission already accepted by others",
+                  403: "User cannot accepts mission published by himself",
+                  409: "User already accepts the mission",
+                  404: 'Mission not found'})
 def accepts(id):
      """Accepts a mission
     **Note**: Only activated user can accepts mission.

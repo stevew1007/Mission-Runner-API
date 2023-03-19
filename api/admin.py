@@ -4,7 +4,8 @@ from apifairy import authenticate, body, response
 
 from api import db
 from api.models import User, Account, ChangeLog
-from api.schemas import UserSchema, UpdateUserSchema, EmptySchema, UpdateUserRoleSchema
+from api.schemas import UserSchema, UpdateUserSchema, EmptySchema, \
+    UpdateUserRoleSchema
 from api.auth import token_auth
 from api.enums import Role, Action
 from api.decorators import paginated_response
@@ -15,6 +16,7 @@ users_schema = UserSchema(many=True)
 update_user_schema = UpdateUserSchema(partial=True)
 update_user_role = UpdateUserRoleSchema()
 
+
 @admin.route('/users', methods=['GET'])
 @authenticate(token_auth, role=[Role.ADMIN.value])
 @paginated_response(users_schema)
@@ -22,12 +24,14 @@ def all_user():
     """Retrieve all users"""
     return User.select()
 
+
 @admin.route('/accounts', methods=['GET'])
 @authenticate(token_auth, role=[Role.ADMIN.value])
 @paginated_response(users_schema)
 def all_account():
     """Retrieve all accounts"""
     return Account.select()
+
 
 @admin.route('/user/<int:id>/activate', methods=['POST'])
 @authenticate(token_auth, role=[Role.ADMIN.value])
@@ -54,7 +58,7 @@ def activate_user(id):
     # Track changes
     change = ChangeLog(
         object_type=type(user).__name__,
-        object_id = user.id,
+        object_id=user.id,
         operation=Action.UPDATE.value,
         requester_id=requester.id,
         attribute_name='activated',
@@ -65,6 +69,7 @@ def activate_user(id):
     # Save data
     db.session.add(change)
     db.session.commit()
+
 
 @admin.route('/account/<int:id>/activate', methods=['POST'])
 @authenticate(token_auth, role=[Role.ADMIN.value])
@@ -91,7 +96,7 @@ def activate_account(id):
     # Track changes
     change = ChangeLog(
         object_type=type(account).__name__,
-        object_id = account.id,
+        object_id=account.id,
         operation=Action.UPDATE.value,
         requester_id=requester.id,
         attribute_name='activated',
@@ -103,9 +108,11 @@ def activate_account(id):
     db.session.add(change)
     db.session.commit()
 
+
 @admin.route('/user/<int:id>/deactivate', methods=['POST'])
 @authenticate(token_auth, role=[Role.ADMIN.value])
-@response(EmptySchema, status_code=204, description='User deactivated successfully.')
+@response(EmptySchema, status_code=204,
+          description='User deactivated successfully.')
 @other_responses({404: 'User not found', 409: 'User already deactivated'})
 def deactivate_user(id):
     """Deactivate the user"""
@@ -127,7 +134,7 @@ def deactivate_user(id):
     # Track changes
     change = ChangeLog(
         object_type=type(user).__name__,
-        object_id = user.id,
+        object_id=user.id,
         operation=Action.UPDATE.value,
         requester_id=requester.id,
         attribute_name='activated',
@@ -139,10 +146,13 @@ def deactivate_user(id):
     db.session.add(change)
     db.session.commit()
 
+
 @admin.route('/account/<int:id>/deactivate', methods=['POST'])
 @authenticate(token_auth, role=[Role.ADMIN.value])
-@response(EmptySchema, status_code=204, description='Account deactivated successfully.')
-@other_responses({404: 'Account not found', 409: 'Account already deactivated'})
+@response(EmptySchema, status_code=204,
+          description='Account deactivated successfully.')
+@other_responses({404: 'Account not found',
+                  409: 'Account already deactivated'})
 def deactivate_account(id):
     """Deactivate the account"""
 
@@ -163,7 +173,7 @@ def deactivate_account(id):
     # Track changes
     change = ChangeLog(
         object_type=type(account).__name__,
-        object_id = account.id,
+        object_id=account.id,
         operation=Action.UPDATE.value,
         requester_id=requester.id,
         attribute_name='activated',
@@ -175,14 +185,18 @@ def deactivate_account(id):
     db.session.add(change)
     db.session.commit()
 
+
 @admin.route('/user/<int:id>/setrole', methods=['PUT'])
 @authenticate(token_auth, role=[Role.ADMIN.value])
 @body(update_user_role)
-@response(EmptySchema, status_code=204, description='User role set successfully.')
-@other_responses({400: 'Role does not exist', 404: 'User not found', 409: "User already set to the role specified"})
+@response(EmptySchema, status_code=204,
+          description='User role set successfully.')
+@other_responses({400: 'Role does not exist',
+                  404: 'User not found',
+                  409: "User already set to the role specified"})
 def setRole(id, to_role):
     """Set a specific role for the user"""
-    
+
     # Issuer
     requester = token_auth.current_user()
 
@@ -202,7 +216,7 @@ def setRole(id, to_role):
     # Track changes
     change = ChangeLog(
         object_type=type(user).__name__,
-        object_id = user.id,
+        object_id=user.id,
         operation=Action.UPDATE.value,
         requester_id=requester.id,
         attribute_name='activated',
@@ -214,6 +228,7 @@ def setRole(id, to_role):
     db.session.add(change)
     db.session.commit()
 
+
 @admin.route('/user/<int:id>/modify', methods=['PUT'])
 @authenticate(token_auth, role=[Role.ADMIN.value])
 @body(update_user_schema)
@@ -221,7 +236,8 @@ def setRole(id, to_role):
 @other_responses({404: 'User not found'})
 def modifyUserInfo(data, id):
     """Modify information for the user
-    Allow admin to modify user table of the database. **Use this power wisely**.
+    Allow admin to modify user table of the database.
+    **Use this power wisely**.
 
     Please use seperate API to set role, activate or deactivate user.
     """
@@ -231,7 +247,7 @@ def modifyUserInfo(data, id):
 
     # Setup
     user = db.session.get(User, id) or abort(404)
-    prev = { key: getattr(user, key) for key in dict(data).keys() }
+    prev = {key: getattr(user, key) for key in dict(data).keys()}
 
     # Modification
     user.update(data)
@@ -241,7 +257,7 @@ def modifyUserInfo(data, id):
         if getattr(user, key) is not None:
             change = ChangeLog(
                 object_type=type(user).__name__,
-                object_id = user.id,
+                object_id=user.id,
                 operation=Action.UPDATE.value,
                 requester_id=requester.id,
                 attribute_name=key,
@@ -254,6 +270,7 @@ def modifyUserInfo(data, id):
     db.session.commit()
     return user
 
+
 @admin.route('/account/<int:id>/modify', methods=['PUT'])
 @authenticate(token_auth, role=[Role.ADMIN.value])
 @body(update_user_schema)
@@ -261,7 +278,8 @@ def modifyUserInfo(data, id):
 @other_responses({404: 'User not found'})
 def modifyAccountInfo(data, id):
     """Modify information for the user
-    Allow admin to modify user table of the database. **Use this power wisely**.
+    Allow admin to modify user table of the database.
+    **Use this power wisely**.
 
     Please use seperate API to set role, activate or deactivate user.
     """
@@ -271,7 +289,7 @@ def modifyAccountInfo(data, id):
 
     # Setup
     account = db.session.get(Account, id) or abort(404)
-    prev = { key: getattr(Account, key) for key in dict(data).keys() }
+    prev = {key: getattr(Account, key) for key in dict(data).keys()}
 
     # Modification
     account.update(data)
@@ -281,7 +299,7 @@ def modifyAccountInfo(data, id):
         if getattr(account, key) is not None:
             change = ChangeLog(
                 object_type=type(account).__name__,
-                object_id = account.id,
+                object_id=account.id,
                 operation=Action.UPDATE.value,
                 requester_id=requester.id,
                 attribute_name=key,

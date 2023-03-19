@@ -48,6 +48,7 @@ def token_auth_error(status=401):
         'description': error.description,
     }, error.code
 
+
 @token_auth.get_user_roles
 def get_user_roles(user: User):
     return user.role

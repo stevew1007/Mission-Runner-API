@@ -1,6 +1,6 @@
 # from datetime import datetime, timedelta
 # from api.app import db
-# from api.models import User, Post
+# from api.models import User, Account
 # from tests.base_test_case import BaseTestCase
 
 
@@ -11,13 +11,13 @@
 #         tm = datetime.utcnow()
 #         for i in range(105):
 #             tm -= timedelta(minutes=1)
-#             post = Post(text=f'Post {i + 1}', author=user, timestamp=tm)
+#             # post = Post(text=f'Post {i + 1}', author=user, timestamp=tm)
 #             db.session.add(post)
-#         for i in range(26):
-#             follower = User(username=chr(ord('a') + i),
-#                             email=f'{chr(ord("a") + i)}@example.com')
-#             db.session.add(follower)
-#             follower.follow(user)
+#         # for i in range(26):
+#         #     follower = User(username=chr(ord('a') + i),
+#         #                     email=f'{chr(ord("a") + i)}@example.com')
+#         #     db.session.add(follower)
+#         #     follower.follow(user)
 #         db.session.commit()
 
 #     def test_pagination_default(self):
@@ -86,7 +86,8 @@
 #         assert rv.json['data'][24]['text'] == 'Post 62'
 
 #     def test_pagination_offset_and_after(self):
-#         rv = self.client.get('/api/posts?offset=37&after=2021-01-01T00:00:00')
+#         rv = self.client.get(
+# '/api/posts?offset=37&after=2021-01-01T00:00:00')
 #         assert rv.status_code == 400
 #         rv = self.client.get('/api/users/1/following?offset=37&after=foo')
 #         assert rv.status_code == 400

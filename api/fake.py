@@ -1,9 +1,9 @@
-import random
-import click
+# import random
+# import click
 from flask import Blueprint
 from faker import Faker
-from api.app import db
-from api.models import User
+# from api.app import db
+# from api.models import User
 
 fake = Blueprint('fake', __name__)
 faker = Faker()

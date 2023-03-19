@@ -15,6 +15,7 @@ cors = CORS()
 mail = Mail()
 apifairy = APIFairy()
 
+
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
@@ -28,7 +29,7 @@ def create_app(config_class=Config):
         cors.init_app(app)
     mail.init_app(app)
     apifairy.init_app(app)
-    
+
     # blueprints
     from api.errors import errors
     app.register_blueprint(errors)
@@ -40,13 +41,13 @@ def create_app(config_class=Config):
     app.register_blueprint(accounts, url_prefix='/api')
     from api.admin import admin
     app.register_blueprint(admin, url_prefix='/api/admin')
-    
+
     # admin.add_view(ModelView(models.User, db.session))
     # from api.posts import posts
     # app.register_blueprint(posts, url_prefix='/api')
     # from api.fake import fake
     # app.register_blueprint(fake)
-    
+
     # define the shell context
     @app.shell_context_processor
     def shell_context():  # pragma: no cover
