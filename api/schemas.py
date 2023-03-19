@@ -3,7 +3,7 @@ from marshmallow import validate, validates, validates_schema, \
 from api import ma, db
 from api.auth import token_auth
 from api.models import User, Account, Mission
-from api.enums import Status
+from api.enums import Role, Status
 
 paginated_schema_cache = {}
 
@@ -76,7 +76,7 @@ class UserSchema(ma.SQLAlchemySchema):
     # about_me = ma.auto_field()
     birthday = ma.auto_field(dump_only=True, description = "Date when user registered.")
     last_seen = ma.auto_field(dump_only=True, description = "Timestamp for user's last activity.")
-    activated = ma.auto_field(dump_only=True, description = "User can interactive with others only after admin has verified the user account.")
+    # activated = ma.auto_field(dump_only=True, description = "User can interactive with others only after admin has verified the user account.")
     # accounts = ma.Nested(AccountSchema, dump_only=True, description = "All the account that is owned by this user.")
     # account_url = ma.URLFor('account.user_all', values={'id': '<id>'}, dump_only=True)
 
@@ -168,6 +168,11 @@ class AccountSchema(ma.SQLAlchemySchema):
     owner = ma.Nested(UserSchema, dump_only=True, description = "User who is responsible for this account.")
     # missions_published
 
+    @post_dump
+    def fix_datetimes(self, data, **kwargs):
+        data['created'] += 'Z'
+        return data
+
 class UpdateOwnerShema(AccountSchema):
     owner = ma.Nested(UserSchema)
 
@@ -185,30 +190,20 @@ class MissionSchema(ma.SQLAlchemySchema):
     bounty = ma.auto_field(description = "The reward mission runner will receive for complete the mission.")
     status = ma.auto_field(dump_only=True, description = "Current status of the mission")
     publisher = ma.Nested(AccountSchema, description = "Account that publishes this mission.")
-    owner = ma.Nested(UserSchema, description = "User that accepts the mission.")
+    runner = ma.Nested(UserSchema, description = "User that accepts the mission.")
 
     @validates('status')
     def validate_status(self, value):
         # user = token_auth.current_user()
         if Status.isValid(value):
             raise ValueError(f"Invalid status: {value}. Allowed roles are {Status.to_str()}.")
-# class PostSchema(ma.SQLAlchemySchema):
-#     class Meta:
-#         model = Post
-#         include_fk = True
-#         ordered = True
 
-#     id = ma.auto_field(dump_only=True)
-#     url = ma.String(dump_only=True)
-#     text = ma.auto_field(required=True, validate=validate.Length(
-#         min=1, max=280))
-#     timestamp = ma.auto_field(dump_only=True)
-#     author = ma.Nested(UserSchema, dump_only=True)
-
-#     @post_dump
-#     def fix_datetimes(self, data, **kwargs):
-#         data['timestamp'] += 'Z'
-#         return data
+    @post_dump
+    def fix_datetimes(self, data, **kwargs):
+        data['published'] += 'Z'
+        data['created'] += 'Z'
+        data['expired'] += 'Z'
+        return data
 
 
 class TokenSchema(ma.Schema):

@@ -7,25 +7,29 @@ class AuthTests(BaseTestCase):
     config = TestConfigWithAuth
 
     def test_no_auth(self):
-        rv = self.client.get('/api/users')
+        rv = self.client.get('/api/me')
         assert rv.status_code == 401
 
     def test_get_token(self):
+        # Login
         rv = self.client.post('/api/tokens', auth=('test', 'foo'))
         assert rv.status_code == 200
         access_token = rv.json['access_token']
         refresh_token = rv.json['refresh_token']
 
-        rv = self.client.get('/api/users', headers={
+        #Verify with authenticated user information
+        rv = self.client.get('/api/me', headers={
             'Authorization': f'Bearer {access_token}'})
         assert rv.status_code == 200
-        assert rv.json['data'][0]['username'] == 'test'
+        assert rv.json['username'] == 'test'
 
-        rv = self.client.get('/api/users', headers={
+        # Verify with authenticated user information in wrong access token
+        rv = self.client.get('/api/me', headers={
             'Authorization': f'Bearer {access_token + "x"}'})
         assert rv.status_code == 401
 
-        rv = self.client.get('/api/users', headers={
+        # Verify with authenticated user information in refresh token
+        rv = self.client.get('/api/me', headers={
             'Authorization': f'Bearer {refresh_token}'})
         assert rv.status_code == 401
 
@@ -52,7 +56,7 @@ class AuthTests(BaseTestCase):
 
         with mock.patch('api.models.datetime') as dt:
             dt.utcnow.return_value = datetime.utcnow() + timedelta(days=1)
-            rv = self.client.get('/api/users', headers={
+            rv = self.client.get('/api/me', headers={
                 'Authorization': f'Bearer {access_token}'})
             assert rv.status_code == 401
 
@@ -70,12 +74,12 @@ class AuthTests(BaseTestCase):
         assert rv.json['refresh_token'] != refresh_token1
         access_token2 = rv.json['access_token']
 
-        rv = self.client.get('/api/users', headers={
+        rv = self.client.get('/api/me', headers={
             'Authorization': f'Bearer {access_token2}'})
         assert rv.status_code == 200
-        assert rv.json['data'][0]['username'] == 'test'
+        assert rv.json['username'] == 'test'
 
-        rv = self.client.get('/api/users', headers={
+        rv = self.client.get('/api/me', headers={
             'Authorization': f'Bearer {access_token1}'})
         assert rv.status_code == 401
 
@@ -105,7 +109,7 @@ class AuthTests(BaseTestCase):
         access_token1 = rv.json['access_token']
         refresh_token1 = rv.json['refresh_token']
 
-        rv = self.client.get('/api/users', headers={
+        rv = self.client.get('/api/me', headers={
             'Authorization': f'Bearer {access_token1}'})
         assert rv.status_code == 200
 
@@ -125,13 +129,13 @@ class AuthTests(BaseTestCase):
             'refresh_token': refresh_token2})
         assert rv.status_code == 401  # duplicate refresh
 
-        rv = self.client.get('/api/users', headers={
+        rv = self.client.get('/api/me', headers={
             'Authorization': f'Bearer {access_token1}'})
         assert rv.status_code == 401
-        rv = self.client.get('/api/users', headers={
+        rv = self.client.get('/api/me', headers={
             'Authorization': f'Bearer {access_token2}'})
         assert rv.status_code == 401
-        rv = self.client.get('/api/users', headers={
+        rv = self.client.get('/api/me', headers={
             'Authorization': f'Bearer {access_token3}'})
         assert rv.status_code == 401
 
@@ -153,7 +157,7 @@ class AuthTests(BaseTestCase):
         assert rv.status_code == 200
         access_token = rv.json['access_token']
 
-        rv = self.client.get('/api/users', headers={
+        rv = self.client.get('/api/me', headers={
             'Authorization': f'Bearer {access_token}'})
         assert rv.status_code == 200
 
@@ -161,7 +165,7 @@ class AuthTests(BaseTestCase):
             'Authorization': f'Bearer {access_token}'})
         assert rv.status_code == 204
 
-        rv = self.client.get('/api/users', headers={
+        rv = self.client.get('/api/me', headers={
             'Authorization': f'Bearer {access_token}'})
         assert rv.status_code == 401
 

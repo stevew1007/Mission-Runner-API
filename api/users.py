@@ -90,6 +90,10 @@ def put(data):
 
     # Track changes
     for key in prev.keys():
+        if key == 'password_hash' and 'password' not in data:
+            continue
+        if getattr(user, key) == prev[key]:
+            continue # No need to log if the requested change is same as the origional value.
         if getattr(user, key) is not None:
             change = ChangeLog(
                 object_type=type(user).__name__,
@@ -101,6 +105,7 @@ def put(data):
                 new_value=getattr(user, key)
             )
             db.session.add(change)
+            # db.session.commit()
 
     # Save data
     db.session.commit()

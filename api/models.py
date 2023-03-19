@@ -100,7 +100,7 @@ class User(Updateable, db.Model):
     role: so.Mapped[str] = so.mapped_column(sa.String(20), nullable=False, default=Role.MISSION_PUBLISHER.value)
     birthday: so.Mapped[datetime] = so.mapped_column(default=datetime.utcnow)
     last_seen: so.Mapped[datetime] = so.mapped_column(default=datetime.utcnow)
-    activated: so.Mapped[bool] = so.mapped_column(default=False)
+    # activated: so.Mapped[bool] = so.mapped_column(default=False)
     
     # Links
     tokens: so.WriteOnlyMapped['Token'] = so.relationship(back_populates='user')
@@ -139,11 +139,11 @@ class User(Updateable, db.Model):
         token.generate()
         return token
     
-    def activate(self):
-        self.activated = True
+    # def activate(self):
+    #     self.activated = True
 
-    def deactivate(self):
-        self.activated = False
+    # def deactivate(self):
+    #     self.activated = False
 
     def is_activated(self):
         return bool(self.activated)

@@ -5,7 +5,7 @@ from flask import Blueprint, abort
 
 from api import db
 from api.models import User, Account, ChangeLog, Mission
-from api.enums import Action, Status
+from api.enums import Action, Status, Role
 from api.schemas import UserSchema, UpdateUserSchema, AccountSchema, DateTimePaginationSchema, MissionSchema, EmptySchema
 from api.auth import token_auth
 from api.decorators import paginated_response
@@ -98,10 +98,10 @@ def get_byOwner(id):
     return account.missions_published.select()
 
 @missions.route('/missions/<int:id>/accepts', methods=['POST'])
-@authenticate(token_auth)
+@authenticate(token_auth, role=[Role.MISSION_RUNNER])
 @response(EmptySchema, status_code=204,
           description='User accepts mission successfully')
-@other_responses({400: "Mission already accepted by others", 403: 'User is not activated', 409: "User already accepts the mission", 404: 'Mission not found'})
+@other_responses({400: "Mission already accepted by others", 403: "User cannot accepts mission published by himself", 409: "User already accepts the mission", 404: 'Mission not found'})
 def accepts(id):
      """Accepts a mission
     **Note**: Only activated user can accepts mission.
@@ -115,18 +115,17 @@ def accepts(id):
     prev_user = mission.runner
 
     # Gatekeeper
-    if not user.is_activated():
-        abort(403)
-
     if mission.runner is not None:
         if mission.runner_id == user.id:
             abort(409)
         else:
             abort(400)
+    if mission.publisher.owner_id == user.id:
+        abort(403)
 
     # Modification
     mission.runner = user
-    mission.status = 
+    mission.status = Status.ACCEPTED.value
 
     # Track changes
     change = ChangeLog(

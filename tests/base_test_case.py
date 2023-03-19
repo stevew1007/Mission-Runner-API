@@ -1,6 +1,7 @@
 import unittest
 from api.app import create_app, db
 from api.models import User
+from api.enums import Role
 from config import Config
 
 
@@ -24,9 +25,10 @@ class BaseTestCase(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
-        # user = User(username='test', email='test@example.com', password='foo')
-        # db.session.add(user)
-        # db.session.commit()
+
+        user = User(username='test', email='test@example.com', password='foo', im_number='10000', role=Role.ADMIN.value)
+        db.session.add(user)
+        db.session.commit()
         self.client = self.app.test_client()
 
     def tearDown(self):
