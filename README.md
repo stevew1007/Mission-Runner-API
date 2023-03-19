@@ -1,5 +1,5 @@
 # Mission Runner API
-
+[![codecov](https://codecov.io/gh/stevew1007/Mission-Runner-API/branch/master/graph/badge.svg?token=ELXEFT2PXZ)](https://codecov.io/gh/stevew1007/Mission-Runner-API)
 <!-- [![Build status](https://github.com/miguelgrinberg/microblog-api/workflows/build/badge.svg)](https://github.com/miguelgrinberg/microblog-api/actions) [![codecov](https://codecov.io/gh/miguelgrinberg/microblog-api/branch/main/graph/badge.svg)](https://codecov.io/gh/miguelgrinberg/microblog-api) -->
 
 A Flask API back end based on Miguel Grinberg's [microblog-api](https://github.com/miguelgrinberg/microblog-api).
