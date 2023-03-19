@@ -17,7 +17,7 @@ class AuthTests(BaseTestCase):
         access_token = rv.json['access_token']
         refresh_token = rv.json['refresh_token']
 
-        #Verify with authenticated user information
+        # Verify with authenticated user information
         rv = self.client.get('/api/me', headers={
             'Authorization': f'Bearer {access_token}'})
         assert rv.status_code == 200

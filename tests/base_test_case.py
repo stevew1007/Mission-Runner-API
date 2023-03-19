@@ -26,7 +26,12 @@ class BaseTestCase(unittest.TestCase):
         self.app_context.push()
         db.create_all()
 
-        user = User(username='test', email='test@example.com', password='foo', im_number='10000', role=Role.ADMIN.value)
+        user = User(
+            username='test',
+            email='test@example.com',
+            password='foo',
+            im_number='10000',
+            role=Role.ADMIN.value)
         db.session.add(user)
         db.session.commit()
         self.client = self.app.test_client()

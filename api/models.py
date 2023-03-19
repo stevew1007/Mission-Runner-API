@@ -1,14 +1,11 @@
 from datetime import datetime, timedelta
-from enum import Enum
 from hashlib import md5
 import secrets
 from time import time
-from typing import Optional
-from flask import current_app, url_for, has_request_context
+from flask import current_app, url_for
 import jwt
 import sqlalchemy as sa
 from sqlalchemy import orm as so
-from sqlalchemy import event
 from werkzeug.security import generate_password_hash, check_password_hash
 from api.enums import Role
 from api.app import db
@@ -18,7 +15,7 @@ class Updateable:
     def update(self, data):
         for attr, value in data.items():
             setattr(self, attr, value)
-            
+
 # followers = sa.Table(
 #     'followers',
 #     db.Model.metadata,
@@ -26,21 +23,6 @@ class Updateable:
 #     sa.Column('followed_id', sa.ForeignKey('users.id'), primary_key=True)
 # )
 
-# class Activity(db.Model):
-#     __tablename__ = 'activity'
-
-#     id: so.Mapped[int] = so.mapped_column(primary_key=True)
-#     requester_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey('users.id'), index=True)
-#     table_name: so.Mapped[str] = so.mapped_column(sa.String(64), index=True)
-#     changed_id: so.Mapped[int] = so.mapped_column(index=True)
-#     attribute: so.Mapped[str] = so.mapped_column(sa.String(64))
-#     prevous_value: so.Mapped[str] = so.mapped_column(sa.String(128))
-#     new_value: so.Mapped[str] = so.mapped_column(sa.String(128))
-
-#     object_type: so.Mapped[str] = so.mapped_column(sa.String(64))
-#     object_id: so.Mapped[int] = so.mapped_column(index=True)
-#     operation: so.Mapped[str] = so.mapped_column(sa.String(10))
-#     timestamp: so.Mapped[datetime] = so.mapped_column(default=datetime.utcnow)
 
 class ChangeLog(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
@@ -52,7 +34,8 @@ class ChangeLog(db.Model):
     attribute_name: so.Mapped[str] = so.mapped_column(sa.String(64))
     old_value: so.Mapped[str] = so.mapped_column(sa.String(255))
     new_value: so.Mapped[str] = so.mapped_column(sa.String(255))
-    
+
+
 class Token(db.Model):
     __tablename__ = 'tokens'
 
@@ -61,7 +44,8 @@ class Token(db.Model):
     access_expiration: so.Mapped[datetime]
     refresh_token: so.Mapped[str] = so.mapped_column(sa.String(64), index=True)
     refresh_expiration: so.Mapped[datetime]
-    user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey('users.id'), index=True)
+    user_id: so.Mapped[int] = so.mapped_column(
+        sa.ForeignKey('users.id'), index=True)
 
     user: so.Mapped['User'] = so.relationship(back_populates='tokens')
 
@@ -92,21 +76,27 @@ class User(Updateable, db.Model):
     __tablename__ = 'users'
 
     # Basic Info
-    id: so.Mapped[int] = so.mapped_column(primary_key=True)
-    username: so.Mapped[str] = so.mapped_column(sa.String(64), index=True, unique=True)
-    email: so.Mapped[str] = so.mapped_column(sa.String(120), index=True, unique=True)
-    im_number: so.Mapped[str] = so.mapped_column(sa.String(20), index=True, unique=True)
+    id: so.Mapped[int] = so.mapped_column(
+        primary_key=True)
+    username: so.Mapped[str] = so.mapped_column(
+        sa.String(64), index=True, unique=True)
+    email: so.Mapped[str] = so.mapped_column(
+        sa.String(120), index=True, unique=True)
+    im_number: so.Mapped[str] = so.mapped_column(
+        sa.String(20), index=True, unique=True)
     password_hash: so.Mapped[str] = so.mapped_column(sa.String(128))
-    role: so.Mapped[str] = so.mapped_column(sa.String(20), nullable=False, default=Role.MISSION_PUBLISHER.value)
+    role: so.Mapped[str] = so.mapped_column(
+        sa.String(20), nullable=False, default=Role.MISSION_PUBLISHER.value)
     birthday: so.Mapped[datetime] = so.mapped_column(default=datetime.utcnow)
     last_seen: so.Mapped[datetime] = so.mapped_column(default=datetime.utcnow)
-    # activated: so.Mapped[bool] = so.mapped_column(default=False)
-    
-    # Links
-    tokens: so.WriteOnlyMapped['Token'] = so.relationship(back_populates='user')
-    accounts: so.WriteOnlyMapped['Account'] = so.relationship(back_populates='owner')
-    missions_run: so.WriteOnlyMapped['Mission'] = so.relationship(back_populates='runner')
 
+    # Links
+    tokens: so.WriteOnlyMapped['Token'] = so.relationship(
+        back_populates='user')
+    accounts: so.WriteOnlyMapped['Account'] = so.relationship(
+        back_populates='owner')
+    missions_run: so.WriteOnlyMapped['Mission'] = so.relationship(
+        back_populates='runner')
 
     def __repr__(self):  # pragma: no cover
         return '<User {}>'.format(self.username)
@@ -138,16 +128,10 @@ class User(Updateable, db.Model):
         token = Token(user=self)
         token.generate()
         return token
-    
-    # def activate(self):
-    #     self.activated = True
-
-    # def deactivate(self):
-    #     self.activated = False
 
     def is_activated(self):
         return bool(self.activated)
-    
+
     def is_admin(self):
         return self.role == Role.ADMIN.value
 
@@ -197,31 +181,32 @@ class User(Updateable, db.Model):
         return db.session.scalar(User.select().filter_by(
             email=data['reset_email']))
 
+
 class Account(Updateable, db.Model):
     __tablename__ = 'accounts'
 
-    #Basic Info
+    # Basic Info
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
-    name: so.Mapped[str] = so.mapped_column(sa.String(50), nullable=False, unique=True)
+    name: so.Mapped[str] = so.mapped_column(
+        sa.String(50), nullable=False, unique=True)
     created: so.Mapped[datetime] = so.mapped_column(default=datetime.utcnow)
     activated: so.Mapped[bool] = so.mapped_column(default=False)
     lp_point: so.Mapped[int] = so.mapped_column(nullable=False)
 
     # Links
     # Back_populates link for account owner
-    owner_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
+    owner_id: so.Mapped[int] = so.mapped_column(
+        sa.ForeignKey(User.id), index=True)
     owner: so.Mapped['User'] = so.relationship(back_populates='accounts')
-    missions_published: so.Mapped['Mission'] = so.relationship(back_populates='publisher')
-
+    missions_published: so.Mapped['Mission'] = so.relationship(
+        back_populates='publisher')
 
     def __repr__(self):  # pragma: no cover
         return '<Post {}>'.format(self.text)
-    
+
     @property
     def url(self):
         return url_for('accounts.get', id=self.id)
-    
-    # def publish_mission(self):
 
     def activate(self):
         self.activated = True
@@ -232,12 +217,12 @@ class Account(Updateable, db.Model):
     def is_activated(self):
         return bool(self.activated)
 
+
 class Mission(Updateable, db.Model):
     __tablename__ = 'mission'
 
     # Basic Info
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
-    
     published: so.Mapped[datetime] = so.mapped_column(default=datetime.utcnow)
 
     # Mission Related
@@ -247,19 +232,25 @@ class Mission(Updateable, db.Model):
     created: so.Mapped[datetime]
     expired: so.Mapped[datetime]
     bounty: so.Mapped[int] = so.mapped_column(nullable=False)
-     
-    # Status Related
-    status: so.Mapped[str] = so.mapped_column(sa.String(20), nullable=False, default='published')
 
-    publisher_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Account.id), index=True)
-    publisher: so.Mapped['Account'] = so.relationship(back_populates='missions_published')
-    
-    runner_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
+    # Status Related
+    status: so.Mapped[str] = so.mapped_column(
+        sa.String(20), nullable=False, default='published')
+
+    publisher_id: so.Mapped[int] = so.mapped_column(
+        sa.ForeignKey(Account.id), index=True)
+    publisher: so.Mapped['Account'] = so.relationship(
+        back_populates='missions_published')
+
+    runner_id: so.Mapped[int] = so.mapped_column(
+        sa.ForeignKey(User.id), index=True)
     runner: so.Mapped['User'] = so.relationship(back_populates='missions_run')
 
     @so.validates('status')
     def validate_status(self, key, value):
         allowed_status = ['published', 'accepted', 'completed', "archived"]
         if value not in allowed_status:
-            raise ValueError(f"Invalid status: {value}. Allowed roles are {', '.join(allowed_status)}.")
+            raise ValueError(
+                f"Invalid status: {value}. \
+                    Allowed roles are {', '.join(allowed_status)}.")
         return value

@@ -2,12 +2,12 @@
 Welcome to the documentation for Mission Runner API!
 
 This project is written in Python, with the
-[Flask](https://flask.palletsprojects.com/) web framework, modified from Miguel Grinberg's [microblog-api](https://github.com/miguelgrinberg/microblog-api). 
+[Flask](https://flask.palletsprojects.com/) web framework, modified from Miguel Grinberg's [microblog-api](https://github.com/miguelgrinberg/microblog-api).
 This documentation is generated automatically using the [APIFairy](https://github.com/miguelgrinberg/apifairy) Flask extension.
 
 ## Introduction
 
-Mission Runner-API is an easy to use web API for creating EVE Online mission co-op bounty tracking system. 
+Mission Runner-API is an easy to use web API for creating EVE Online mission co-op bounty tracking system.
 
 ### Mission Co-operation
 
