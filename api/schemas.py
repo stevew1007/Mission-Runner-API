@@ -3,7 +3,7 @@ from marshmallow import validate, validates, validates_schema, \
 from api import ma, db
 from api.auth import token_auth
 from api.models import User, Account, Mission
-from api.enums import Role
+from api.enums import Status
 
 paginated_schema_cache = {}
 
@@ -185,18 +185,13 @@ class MissionSchema(ma.SQLAlchemySchema):
     bounty = ma.auto_field(description = "The reward mission runner will receive for complete the mission.")
     status = ma.auto_field(dump_only=True, description = "Current status of the mission")
     publisher = ma.Nested(AccountSchema, description = "Account that publishes this mission.")
+    owner = ma.Nested(UserSchema, description = "User that accepts the mission.")
 
     @validates('status')
     def validate_status(self, value):
-        allowed_status = [r.value for r in Role]
         # user = token_auth.current_user()
-        if value not in allowed_status:
-            raise ValueError(f"Invalid role: {value}. Allowed roles are {', '.join(allowed_roles)}.")
-        if user is not None:
-            if not user.is_admin():
-                raise PermissionError("Only administrator can update user role")
-        else:
-            raise PermissionError("Only administrator can update user role")
+        if Status.isValid(value):
+            raise ValueError(f"Invalid status: {value}. Allowed roles are {Status.to_str()}.")
 # class PostSchema(ma.SQLAlchemySchema):
 #     class Meta:
 #         model = Post
