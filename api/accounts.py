@@ -40,8 +40,8 @@ def new(args):
 
     # Track changes
     change = ChangeLog(
-        object_type=type(user).__name__,
-        object_id=user.id,
+        object_type=type(account).__name__,
+        object_id=account.id,
         operation=Action.INSERT.value,
         requester_id=user.id,
         attribute_name='',
@@ -60,8 +60,7 @@ def new(args):
 @response(account_schema)
 @other_responses({
     401: 'User cannot access account info from others',
-    404: 'Account not found'}
-    )
+    404: 'Account not found'})
 def get(id):
     """Retrieve a account by id
     **Note**: User can only view the account owned by himself.
@@ -79,7 +78,9 @@ def get(id):
 @accounts.route('/accounts/<account_name>', methods=['GET'])
 @authenticate(token_auth)
 @response(account_schema)
-@other_responses({404: 'User not found'})
+@other_responses({
+    401: 'User cannot access account info from others',
+    404: 'User not found'})
 def get_by_username(account_name):
     """Retrieve a account by name
     **Note**: User can only view the account owned by himself.
@@ -126,9 +127,12 @@ def put(data, id):
     # Track changes
     for key in prev.keys():
         if getattr(account, key) is not None:
+            if getattr(account, key) == prev[key]:
+                # No need to log if the change is same as the origional value.
+                continue
             change = ChangeLog(
-                object_type=type(user).__name__,
-                object_id=user.id,
+                object_type=type(account).__name__,
+                object_id=account.id,
                 operation=Action.UPDATE.value,
                 requester_id=user.id,
                 attribute_name=key,

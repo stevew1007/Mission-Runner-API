@@ -258,6 +258,13 @@ class MissionSchema(ma.SQLAlchemySchema):
         return data
 
 
+class MissionMultAcceptsSchema(ma.Schema):
+    class Meta:
+        ordered = True
+
+    mission_id_list = ma.List(ma.Integer(), unique=True)
+
+
 class TokenSchema(ma.Schema):
     class Meta:
         ordered = True

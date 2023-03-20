@@ -191,7 +191,7 @@ class Account(Updateable, db.Model):
         sa.String(50), nullable=False, unique=True)
     created: so.Mapped[datetime] = so.mapped_column(default=datetime.utcnow)
     activated: so.Mapped[bool] = so.mapped_column(default=False)
-    lp_point: so.Mapped[int] = so.mapped_column(nullable=False)
+    lp_point: so.Mapped[int] = so.mapped_column(default=0)
 
     # Links
     # Back_populates link for account owner

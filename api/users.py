@@ -31,7 +31,7 @@ def new(args):
         object_id=user.id,
         operation=Action.INSERT.value,
         requester_id=user.id,
-        attribute_name='activated',
+        attribute_name="",
         old_value="",
         new_value=f"Add User ID:{user.id}"
     )
