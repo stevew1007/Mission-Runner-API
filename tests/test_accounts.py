@@ -197,6 +197,35 @@ class AccountTest(BaseTestCase):
         assert last_log.old_value == '100'
         assert last_log.new_value == '20000'
 
+    def test_edit_account_by_other(self):
+        # Add account
+        rv = self.client.post('/api/accounts', json={
+            'name': 'nextorian2',
+            "lp_point": 100
+        }, headers={'Authorization': f'Bearer {self.user_access_token}'})
+        assert rv.status_code == 201
+        account_id = rv.json['id']
+
+        # Create another user
+        rv = self.client.post('/api/users', json={
+            'username': 'user2',
+            'email': 'user2@example.com',
+            'im_number': '268204232',
+            'password': 'cat'
+        })
+        assert rv.status_code == 201
+
+        # Login with another user
+        rv = self.client.post('/api/tokens', auth=('user2', 'cat'))
+        assert rv.status_code == 200
+        another_access_token = rv.json['access_token']
+
+        # Change Name
+        rv = self.client.put(f'/api/accounts/{account_id}', json={
+            'name': 'noraus'
+        }, headers={'Authorization': f'Bearer {another_access_token}'})
+        assert rv.status_code == 401
+
     def test_list_all(self):
         # Create another user
         rv = self.client.post('/api/users', json={
