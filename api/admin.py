@@ -4,7 +4,8 @@ from apifairy import authenticate, body, response
 
 from api import db
 from api.models import User, Account, ChangeLog
-from api.schemas import UserSchema, UpdateUserSchema, EmptySchema, \
+from api.schemas import AccountSchema, UserSchema, \
+    UpdateUserSchema, EmptySchema, \
     UpdateUserRoleSchema
 from api.auth import token_auth
 from api.enums import Role, Action
@@ -13,6 +14,8 @@ from api.decorators import paginated_response
 admin = Blueprint('admin', __name__)
 user_schema = UserSchema()
 users_schema = UserSchema(many=True)
+account_schema = AccountSchema()
+accounts_schema = AccountSchema(many=True)
 update_user_schema = UpdateUserSchema(partial=True)
 update_user_role = UpdateUserRoleSchema()
 
@@ -27,51 +30,13 @@ def all_user():
 
 @admin.route('/accounts', methods=['GET'])
 @authenticate(token_auth, role=[Role.ADMIN.value])
-@paginated_response(users_schema)
+@paginated_response(accounts_schema)
 def all_account():
     """Retrieve all accounts"""
     return Account.select()
 
 
-@admin.route('/user/<int:id>/activate', methods=['POST'])
-@authenticate(token_auth, role=[Role.ADMIN.value])
-@response(EmptySchema, status_code=204,
-          description='User activated successfully.')
-@other_responses({404: 'User not found', 409: 'User already activated'})
-def activate_user(id):
-    """Activate the user"""
-
-    # Issuer
-    requester = token_auth.current_user()
-
-    # Setup
-    user = db.session.get(User, id) or abort(404)
-    prev = user.activated
-
-    # Gatekeeper
-    if user.is_activated():
-        abort(409)
-
-    # Modification
-    user.activate()
-
-    # Track changes
-    change = ChangeLog(
-        object_type=type(user).__name__,
-        object_id=user.id,
-        operation=Action.UPDATE.value,
-        requester_id=requester.id,
-        attribute_name='activated',
-        old_value=prev,
-        new_value=user.activated
-    )
-
-    # Save data
-    db.session.add(change)
-    db.session.commit()
-
-
-@admin.route('/account/<int:id>/activate', methods=['POST'])
+@admin.route('/accounts/<int:id>/activate', methods=['POST'])
 @authenticate(token_auth, role=[Role.ADMIN.value])
 @response(EmptySchema, status_code=204,
           description='User activated successfully.')
@@ -109,45 +74,7 @@ def activate_account(id):
     db.session.commit()
 
 
-@admin.route('/user/<int:id>/deactivate', methods=['POST'])
-@authenticate(token_auth, role=[Role.ADMIN.value])
-@response(EmptySchema, status_code=204,
-          description='User deactivated successfully.')
-@other_responses({404: 'User not found', 409: 'User already deactivated'})
-def deactivate_user(id):
-    """Deactivate the user"""
-
-    # Issuer
-    requester = token_auth.current_user()
-
-    # Setup
-    user = db.session.get(User, id) or abort(404)
-    prev = user.activated
-
-    # Gatekeeper
-    if not user.is_activated():
-        abort(409)
-
-    # Modification
-    user.deactivate()
-
-    # Track changes
-    change = ChangeLog(
-        object_type=type(user).__name__,
-        object_id=user.id,
-        operation=Action.UPDATE.value,
-        requester_id=requester.id,
-        attribute_name='activated',
-        old_value=prev,
-        new_value=user.activated
-    )
-
-    # Save data
-    db.session.add(change)
-    db.session.commit()
-
-
-@admin.route('/account/<int:id>/deactivate', methods=['POST'])
+@admin.route('/accounts/<int:id>/deactivate', methods=['POST'])
 @authenticate(token_auth, role=[Role.ADMIN.value])
 @response(EmptySchema, status_code=204,
           description='Account deactivated successfully.')
@@ -186,7 +113,7 @@ def deactivate_account(id):
     db.session.commit()
 
 
-@admin.route('/user/<int:id>/setrole', methods=['PUT'])
+@admin.route('/users/<int:id>/setrole', methods=['PUT'])
 @authenticate(token_auth, role=[Role.ADMIN.value])
 @body(update_user_role)
 @response(EmptySchema, status_code=204,
@@ -194,7 +121,7 @@ def deactivate_account(id):
 @other_responses({400: 'Role does not exist',
                   404: 'User not found',
                   409: "User already set to the role specified"})
-def setRole(id, to_role):
+def setRole(data, id):
     """Set a specific role for the user"""
 
     # Issuer
@@ -205,13 +132,13 @@ def setRole(id, to_role):
     prev = user.role
 
     # Gatekeeper
-    if not Role.isValid(to_role):
+    if not Role.isValid(data['role']):
         abort(400)
-    if user.role == to_role:
+    if user.role == data['role']:
         abort(409)
 
     # Modification
-    user.role = to_role
+    user.role = data['role']
 
     # Track changes
     change = ChangeLog(
@@ -229,7 +156,7 @@ def setRole(id, to_role):
     db.session.commit()
 
 
-@admin.route('/user/<int:id>/modify', methods=['PUT'])
+@admin.route('/users/<int:id>', methods=['PUT'])
 @authenticate(token_auth, role=[Role.ADMIN.value])
 @body(update_user_schema)
 @response(user_schema)
@@ -271,7 +198,7 @@ def modifyUserInfo(data, id):
     return user
 
 
-@admin.route('/account/<int:id>/modify', methods=['PUT'])
+@admin.route('/accounts/<int:id>', methods=['PUT'])
 @authenticate(token_auth, role=[Role.ADMIN.value])
 @body(update_user_schema)
 @response(user_schema)
@@ -310,4 +237,35 @@ def modifyAccountInfo(data, id):
 
     # Save data
     db.session.commit()
+    return account
+
+@admin.route('/accounts/<int:id>', methods=['GET'])
+@authenticate(token_auth, role=[Role.ADMIN.value])
+@response(account_schema)
+@other_responses({404: 'Account not found'})
+def get(id):
+    """Retrieve a account by id
+    Admin access is not limited by ownership.
+    """
+
+    return db.session.get(Account, id) or abort(404)
+
+
+@admin.route('/accounts/<account_name>', methods=['GET'])
+@authenticate(token_auth, role=[Role.ADMIN.value])
+@response(account_schema)
+@other_responses({404: 'User not found'})
+def get_by_username(account_name):
+    """Retrieve a account by name
+    Admin access is not limited by ownership.
+    """
+
+    user = token_auth.current_user()
+    account = db.session.scalar(
+        Account.select().filter_by(name=account_name)) or \
+        abort(404)
+
+    if account.owner_id != user.id:
+        abort(401)
+
     return account

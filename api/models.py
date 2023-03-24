@@ -243,8 +243,8 @@ class Mission(Updateable, db.Model):
         back_populates='missions_published')
 
     runner_id: so.Mapped[int] = so.mapped_column(
-        sa.ForeignKey(User.id), index=True)
-    runner: so.Mapped['User'] = so.relationship(back_populates='missions_run')
+        sa.ForeignKey(User.id), index=True, nullable=True)
+    runner: so.Mapped['User'] = so.relationship(nullable=True, back_populates='missions_run')
 
     @so.validates('status')
     def validate_status(self, key, value):

@@ -126,20 +126,19 @@ def put(data, id):
 
     # Track changes
     for key in prev.keys():
-        if getattr(account, key) is not None:
-            if getattr(account, key) == prev[key]:
-                # No need to log if the change is same as the origional value.
-                continue
-            change = ChangeLog(
-                object_type=type(account).__name__,
-                object_id=account.id,
-                operation=Action.UPDATE.value,
-                requester_id=user.id,
-                attribute_name=key,
-                old_value=prev[key],
-                new_value=getattr(account, key)
-            )
-            db.session.add(change)
+        if getattr(account, key) == prev[key]:
+            # No need to log if the change is same as the origional value.
+            continue
+        change = ChangeLog(
+            object_type=type(account).__name__,
+            object_id=account.id,
+            operation=Action.UPDATE.value,
+            requester_id=user.id,
+            attribute_name=key,
+            old_value=prev[key],
+            new_value=getattr(account, key)
+        )
+        db.session.add(change)
 
     # Save data
     db.session.commit()

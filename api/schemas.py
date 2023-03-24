@@ -154,7 +154,7 @@ class UpdateUserSchema(UserSchema):
             raise PermissionError("Only admin can update user role")
 
 
-class UpdateUserRoleSchema(UserSchema):
+class UpdateUserRoleSchema(ma.Schema):
     role = ma.String(validate=[validate.Length(max=120)])
 
     @validates('role')
@@ -222,7 +222,7 @@ class MissionSchema(ma.SQLAlchemySchema):
         required=True, validate=validate.Length(min=3, max=64),
         description="The description of the mission.")
     galaxy = ma.auto_field(
-        dump_only=True, required=True,
+        required=True,
         description="The Mission Galaxy take place. \
             Saved as the location info is copied from game")
     published = ma.auto_field(
@@ -238,9 +238,9 @@ class MissionSchema(ma.SQLAlchemySchema):
     status = ma.auto_field(
         dump_only=True, description="Current status of the mission")
     publisher = ma.Nested(
-        AccountSchema, description="Account that publishes this mission.")
+        AccountSchema, dump_only=True, nullable=False, description="Account that publishes this mission.")
     runner = ma.Nested(
-        UserSchema, description="User that accepts the mission.")
+        UserSchema, dump_only=True, nullable=True, description="User that accepts the mission.")
 
     @validates('status')
     def validate_status(self, value):

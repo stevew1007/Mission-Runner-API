@@ -31,7 +31,7 @@ update_account_schema = AccountSchema(partial=True)
                   403: 'Account is not activated',
                   404: 'Account not found'})
 def publish(args, id):
-    """Publish a mission from account
+    """Publish a mission from an account
     **Note**: User can only publish mission
      from an activated account that belongs to him
     """
@@ -164,7 +164,6 @@ def accepts(id):
 
     # Save data
     db.session.commit()
-
 
 @missions.route('/missions/accept_missions', methods=['POST'])
 @authenticate(token_auth, role=[Role.MISSION_RUNNER.value, Role.ADMIN.value])
