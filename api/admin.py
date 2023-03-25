@@ -239,6 +239,7 @@ def modifyAccountInfo(data, id):
     db.session.commit()
     return account
 
+
 @admin.route('/accounts/<int:id>', methods=['GET'])
 @authenticate(token_auth, role=[Role.ADMIN.value])
 @response(account_schema)

@@ -226,6 +226,13 @@ class AccountTest(BaseTestCase):
         }, headers={'Authorization': f'Bearer {another_access_token}'})
         assert rv.status_code == 401
 
+    def test_list_all_but_empty(self):
+        rv = self.client.get(
+            '/api/accounts',
+            headers={'Authorization': f'Bearer {self.user_access_token}'})
+        assert rv.status_code == 200
+        assert rv.json['data'] == []
+
     def test_list_all(self):
         # Create another user
         rv = self.client.post('/api/users', json={
@@ -262,7 +269,7 @@ class AccountTest(BaseTestCase):
             user2_account_id.append(rv.json['id'])
 
         rv = self.client.get(
-            '/api/accounts/all',
+            '/api/accounts',
             headers={'Authorization': f'Bearer {self.user_access_token}'})
         assert rv.status_code == 200
 
@@ -272,7 +279,7 @@ class AccountTest(BaseTestCase):
             assert entry['id'] == id
 
         rv = self.client.get(
-            '/api/accounts/all',
+            '/api/accounts',
             headers={'Authorization': f'Bearer {another_access_token}'})
         assert rv.status_code == 200
 

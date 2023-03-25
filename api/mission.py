@@ -1,3 +1,4 @@
+from datetime import datetime
 from apifairy.decorators import other_responses
 from apifairy import authenticate, body, response
 
@@ -68,7 +69,7 @@ def publish(args, id):
     # Save data
     db.session.add(change)
     db.session.commit()
-    return account
+    return mission
 
 
 @missions.route('/missions/<int:id>', methods=['GET'])
@@ -81,17 +82,15 @@ def get(id):
     return db.session.get(Mission, id) or abort(404)
 
 
-@missions.route('/mission/<galaxy>', methods=['GET'])
+@missions.route('/missions/<galaxy>', methods=['GET'])
 @authenticate(token_auth)
 @paginated_response(missions_schema, order_by=Mission.created,
                     order_direction='desc',
                     pagination_schema=DateTimePaginationSchema)
-@other_responses({404: 'Mission not found'})
 def get_byGalaxy(galaxy):
     """Retrieve list of missions by galaxy
     """
-    return db.session.scalar(Mission.select().filter_by(galaxy=galaxy)) or \
-        abort(404)
+    return Mission.select().filter_by(galaxy=galaxy)
 
 
 @missions.route('/accounts/<int:id>/missions', methods=['GET'])
@@ -107,7 +106,7 @@ def get_byOwner(id):
     return account.missions_published.select()
 
 
-@missions.route('/missions/<int:id>/accepts', methods=['POST'])
+@missions.route('/missions/<int:id>/accept', methods=['POST'])
 @authenticate(token_auth, role=[Role.MISSION_RUNNER.value, Role.ADMIN.value])
 @response(EmptySchema, status_code=204,
           description='User accepts mission successfully')
@@ -125,11 +124,11 @@ def accepts(id):
     # Setup
     mission = db.session.get(Mission, id) or abort(404)
     prev = {
-        'runner': mission.runner,
+        'runner': "" if mission.runner is None else mission.runner.id,
         'status': mission.status
     }
     data = {
-        'runner_id': user,
+        'runner': user,
         'status': Status.ACCEPTED.value
     }
 
@@ -144,85 +143,92 @@ def accepts(id):
                 abort(403)
         else:
             abort(403)
+    if mission.expired < datetime.now():
+        abort(403)
 
     # Modification
     mission.update(data)
 
     # Track changes
     for key in dict(data).keys():
-        if getattr(user, key) is not None:
+        if getattr(mission, key) is not None:
+            prev_val = prev[key]
+            new_val = getattr(mission, key).id if key == 'runner' \
+                else getattr(mission, key)
             change = ChangeLog(
                 object_type=type(mission).__name__,
                 object_id=mission.id,
                 operation=Action.UPDATE.value,
                 requester_id=user.id,
                 attribute_name=key,
-                old_value=prev[key],
-                new_value=getattr(user, key)
+                old_value=prev_val,
+                new_value=new_val
             )
             db.session.add(change)
 
     # Save data
     db.session.commit()
 
-@missions.route('/missions/accept_missions', methods=['POST'])
-@authenticate(token_auth, role=[Role.MISSION_RUNNER.value, Role.ADMIN.value])
-@body(multiaccept_shema)
-@response(EmptySchema, status_code=204,
-          description='User accepts mission successfully')
-@other_responses({400: "One of the Mission has already accepted by others",
-                  403: "One of the mission cannot be accepted",
-                  404: 'One of the Mission is not found'})
-def accept_multiple(data):
-    """Accepts multiple mission
-    **Note**: Only mission runner or admin can accepts mission.
-    """
 
-    # Issuer
-    user = token_auth.current_user()
+# @missions.route('/missions/accept_missions', methods=['POST'])
+# @authenticate(token_auth, role=[Role.MISSION_RUNNER.value, Role.ADMIN.value])
+# @body(multiaccept_shema)
+# @response(EmptySchema, status_code=204,
+#           description='User accepts mission successfully')
+# @other_responses({400: "One of the Mission has already accepted by others",
+#                   403: "One of the mission cannot be accepted",
+#                   404: 'One of the Mission is not found'})
+# def accept_multiple(data):
+#     """Accepts multiple mission
+#     **Note**: Only mission runner or admin can accepts mission.
+#     """
 
-    # Setup
-    target_val = {
-        'runner_id': user,
-        'status': Status.ACCEPTED.value
-    }
+#     # Issuer
+#     user = token_auth.current_user()
 
-    # Gatekeeper
-    # Makesure each ID checks out before changes in Database.
-    for id in data["mission_id_list"]:
-        mission = db.session.get(Mission, id) or abort(404)
-        if mission.status in \
-            [Status.DRAFT.value, Status.ACCEPTED.value,
-             Status.COMPLETED.value, Status.ARCHIVED.value]:
-            if mission.runner is not None:
-                if mission.runner_id != user.id:
-                    abort(400)
-                if mission.publisher.owner_id == user.id:
-                    abort(403)
-            else:
-                abort(403)
+#     # Setup
+#     target_val = {
+#         'runner_id': user,
+#         'status': Status.ACCEPTED.value
+#     }
 
-    # Modification
-    prev = dict()
-    for id in data["mission_id_list"]:
-        mission = db.session.get(Mission, id) or abort(404)
-        prev = {key: getattr(mission, key) for key in dict(target_val).keys()}
+#     # Gatekeeper
+#     # Makesure each ID checks out before changes in Database.
+#     for id in data["mission_id_list"]:
+#         mission = db.session.get(Mission, id) or abort(404)
+#         if mission.status in \
+#             [Status.DRAFT.value, Status.ACCEPTED.value,
+#              Status.COMPLETED.value, Status.ARCHIVED.value]:
+#             if mission.runner is not None:
+#                 if mission.runner_id != user.id:
+#                     abort(400)
+#                 if mission.publisher.owner_id == user.id:
+#                     abort(403)
+#             else:
+#                 abort(403)
 
-        mission.update(target_val)
+#     # Modification
+#     prev = dict()
+#     for id in data["mission_id_list"]:
+#         mission = db.session.get(Mission, id) or abort(404)
+#         prev = {
+#           key: getattr(mission, key) for key in dict(target_val).keys()}
 
-        # Track changes
-        for key in dict(target_val).keys():
-            if getattr(mission, key) is not None:
-                change = ChangeLog(
-                    object_type=type(mission).__name__,
-                    object_id=mission.id,
-                    operation=Action.UPDATE.value,
-                    requester_id=user.id,
-                    attribute_name=key,
-                    old_value=prev[key],
-                    new_value=getattr(user, key)
-                )
-                db.session.add(change)
+#         mission.update(target_val)
 
-    # Save data
-    db.session.commit()
+#         # Track changes
+#         for key in dict(target_val).keys():
+#             if getattr(mission, key) is not None:
+#                 change = ChangeLog(
+#                     object_type=type(mission).__name__,
+#                     object_id=mission.id,
+#                     operation=Action.UPDATE.value,
+#                     requester_id=user.id,
+#                     attribute_name=key,
+#                     old_value=prev[key],
+#                     new_value=getattr(user, key)
+#                 )
+#                 db.session.add(change)
+
+#     # Save data
+#     db.session.commit()

@@ -215,6 +215,7 @@ class MissionSchema(ma.SQLAlchemySchema):
     class Meta:
         model = Mission
         ordered = True
+
     id = ma.auto_field(dump_only=True)
     url = ma.String(
         dump_only=True, description="URL to get mission information")
@@ -238,9 +239,11 @@ class MissionSchema(ma.SQLAlchemySchema):
     status = ma.auto_field(
         dump_only=True, description="Current status of the mission")
     publisher = ma.Nested(
-        AccountSchema, dump_only=True, nullable=False, description="Account that publishes this mission.")
+        AccountSchema, dump_only=True, nullable=False,
+        description="Account that publishes this mission.")
     runner = ma.Nested(
-        UserSchema, dump_only=True, nullable=True, description="User that accepts the mission.")
+        UserSchema, dump_only=True, nullable=True,
+        description="User that accepts the mission.")
 
     @validates('status')
     def validate_status(self, value):

@@ -34,6 +34,7 @@ class BaseTestCase(unittest.TestCase):
             role=Role.ADMIN.value)
         db.session.add(user)
         db.session.commit()
+        self.admin_id = user.id
         self.client = self.app.test_client()
 
     def tearDown(self):

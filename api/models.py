@@ -7,7 +7,7 @@ import jwt
 import sqlalchemy as sa
 from sqlalchemy import orm as so
 from werkzeug.security import generate_password_hash, check_password_hash
-from api.enums import Role
+from api.enums import Role, Status
 from api.app import db
 
 
@@ -129,9 +129,6 @@ class User(Updateable, db.Model):
         token.generate()
         return token
 
-    def is_activated(self):
-        return bool(self.activated)
-
     def is_admin(self):
         return self.role == Role.ADMIN.value
 
@@ -198,7 +195,9 @@ class Account(Updateable, db.Model):
     owner_id: so.Mapped[int] = so.mapped_column(
         sa.ForeignKey(User.id), index=True)
     owner: so.Mapped['User'] = so.relationship(back_populates='accounts')
-    missions_published: so.Mapped['Mission'] = so.relationship(
+    # missions_published: so.Mapped['Mission'] = so.relationship(
+    #   back_populates='publisher')
+    missions_published: so.WriteOnlyMapped['Mission'] = so.relationship(
         back_populates='publisher')
 
     def __repr__(self):  # pragma: no cover
@@ -223,7 +222,6 @@ class Mission(Updateable, db.Model):
 
     # Basic Info
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
-    published: so.Mapped[datetime] = so.mapped_column(default=datetime.utcnow)
 
     # Mission Related
     title: so.Mapped[str] = so.mapped_column(sa.String(), nullable=False)
@@ -235,7 +233,7 @@ class Mission(Updateable, db.Model):
 
     # Status Related
     status: so.Mapped[str] = so.mapped_column(
-        sa.String(20), nullable=False, default='published')
+        sa.String(20), nullable=False, default=Status.PUBLISHED.value)
 
     publisher_id: so.Mapped[int] = so.mapped_column(
         sa.ForeignKey(Account.id), index=True)
@@ -244,13 +242,17 @@ class Mission(Updateable, db.Model):
 
     runner_id: so.Mapped[int] = so.mapped_column(
         sa.ForeignKey(User.id), index=True, nullable=True)
-    runner: so.Mapped['User'] = so.relationship(nullable=True, back_populates='missions_run')
+    runner: so.Mapped['User'] = so.relationship(back_populates='missions_run')
 
-    @so.validates('status')
-    def validate_status(self, key, value):
-        allowed_status = ['published', 'accepted', 'completed', "archived"]
-        if value not in allowed_status:
-            raise ValueError(
-                f"Invalid status: {value}. \
-                    Allowed roles are {', '.join(allowed_status)}.")
-        return value
+    # @so.validates('status')
+    # def validate_status(self, key, value):
+    #     allowed_status = ['published', 'accepted', 'completed', "archived"]
+    #     if value not in allowed_status:
+    #         raise ValueError(
+    #             f"Invalid status: {value}. \
+    #                 Allowed stat are {', '.join(allowed_status)}.")
+    #     return value
+
+    @property
+    def url(self):
+        return url_for('missions.get', id=self.id)

@@ -1,5 +1,5 @@
 # import random
-import click
+# import click
 from flask import Blueprint
 
 # from faker import Faker
@@ -22,7 +22,7 @@ def admin():  # pragma: no cover
             password='admin',
             im_number='10000',
             role=Role.ADMIN.value)
-    
+
     db.session.add(user)
     db.session.commit()
 

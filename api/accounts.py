@@ -145,12 +145,11 @@ def put(data, id):
     return account
 
 
-@accounts.route('/accounts/all', methods=['GET'])
+@accounts.route('/accounts', methods=['GET'])
 @authenticate(token_auth)
 @paginated_response(accounts_schema, order_by=Account.id,
                     order_direction='asc',
                     pagination_schema=StringPaginationSchema)
-@other_responses({404: 'User not found'})
 def account_all():
     """Retrieve all accounts
     **Note**: User can only view the account owned by himself.

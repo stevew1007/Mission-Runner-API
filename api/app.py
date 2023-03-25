@@ -7,7 +7,6 @@ from flask_mail import Mail
 # import flask_admin
 from apifairy import APIFairy
 from config import Config
-from api.enums import Role
 
 db = Alchemical()
 migrate = Migrate()
@@ -50,8 +49,6 @@ def create_app(config_class=Config):
     # app.register_blueprint(posts, url_prefix='/api')
     from api.cmd import cmd
     app.register_blueprint(cmd)
-
-    
 
     # define the shell context
     @app.shell_context_processor
