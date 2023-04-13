@@ -145,6 +145,58 @@ def put(data, id):
     return account
 
 
+@accounts.route('/accounts/setdefault/<int:id>', methods=['POST'])
+@authenticate(token_auth)
+@body(update_account_schema)
+@response(account_schema)
+@other_responses({
+    401: 'User cannot set default account that belongs to others',
+    404: 'Account not found'
+    })
+def setdefault(data, id):
+    """Set account as default payment account.
+    """
+
+    # Issuer
+    user = token_auth.current_user()
+
+    # Setup
+    account = db.session.get(Account, id) or abort(404)
+    prev = getattr(user, 'default_account_id', "")
+
+    # Gatekeeper
+    if account.owner_id != user.id:
+        abort(401)
+
+    # Modification
+    user.default_account_id = account.id
+
+    # Track changes
+    change = ChangeLog(
+        object_type=type(account).__name__,
+        object_id=account.id,
+        operation=Action.UPDATE.value,
+        requester_id=user.id,
+        attribute_name='default_account_id',
+        old_value=prev,
+        new_value=account.id
+    )
+    db.session.add(change)
+    # Save data
+    db.session.commit()
+
+@accounts.route('/accounts/default', methods=['GET'])
+@authenticate(token_auth)
+@response(account_schema)
+def get_default():
+    """Retrieve all accounts
+    **Note**: User can only view the account owned by himself.
+    """
+    user = token_auth.current_user()
+    account = user.default_account
+    return account
+
+
 @accounts.route('/accounts', methods=['GET'])
 @authenticate(token_auth)
 @paginated_response(accounts_schema, order_by=Account.id,
