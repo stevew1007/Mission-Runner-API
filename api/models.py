@@ -92,7 +92,7 @@ class User(Updateable, db.Model):
 
     # Links
     # Back_populates link for default payment
-    default_accunt_id: so.Mapped[int] = so.mapped_column(nullable=True)
+    default_account_id: so.Mapped[int] = so.mapped_column(nullable=True)
     tokens: so.WriteOnlyMapped['Token'] = so.relationship(
         back_populates='user')
     accounts: so.WriteOnlyMapped['Account'] = so.relationship(
@@ -119,7 +119,7 @@ class User(Updateable, db.Model):
     @property
     def default_account(self):
         if self.default_account_id is not None:
-            return Account.query.get(self.default_account_id)
+            return db.session.get(Account, self.default_account_id)
         else:
             return None
 
