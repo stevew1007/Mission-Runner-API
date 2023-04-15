@@ -61,27 +61,32 @@ def get_by_username(username):
     return db.session.scalar(User.select().filter_by(username=username)) or \
         abort(404)
 
-@users.route('/users/<int:id>/default', methods=['GET'])
+
+@users.route('/users/<int:id>/default_account', methods=['GET'])
 @authenticate(token_auth)
-# @response(user_schema)
-@other_responses({404: 'User not found'})
+@other_responses({
+    403: 'Default account not set for user',
+    404: 'User not found'})
 def get_default_account(id):
     """Retrieve a user default account by id
     You will only beable to get the id & name of account by this endpoint.
     """
     user = db.session.get(User, id) or abort(404)
-    return jsonify(id=user.default_account.id, name=user.default_account.name)
+    account = user.default_account or abort(403)
+    return jsonify(id=account.id, name=account.name)
 
 
-@users.route('/users/<username>/default', methods=['GET'])
+@users.route('/users/<username>/default_account', methods=['GET'])
 @authenticate(token_auth)
-# @response(account_schema)
-@other_responses({404: 'User not found'})
+@other_responses({
+    403: 'Default account not set for user',
+    404: 'User not found'})
 def get_default_account_by_username(username):
     """Retrieve a user by username"""
     user = db.session.scalar(User.select().filter_by(username=username)) or \
         abort(404)
-    return jsonify(id=user.default_account.id, name=user.default_account.name)
+    account = user.default_account or abort(403)
+    return jsonify(id=account.id, name=account.name)
 
 
 @users.route('/me', methods=['GET'])

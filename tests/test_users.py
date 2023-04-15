@@ -56,6 +56,56 @@ class UserTests(BaseTestCase):
         assert rv.json['email'] == 'test@example.com'
         assert 'password' not in rv.json
 
+    def test_get_default_account(self):
+        # Check if user doesn't have a default account setup
+        rv = self.client.get('/api/users/1/default_account')
+        assert rv.status_code == 403
+        # Check if user doesn't exist
+        rv = self.client.get('/api/users/1000/default_account')
+        assert rv.status_code == 404
+        # Register account for user
+        rv = self.client.post('/api/accounts', json={
+            'name': 'Test Account',
+            'lp_point': 1000,
+        })
+        assert rv.status_code == 201
+        account_id = rv.json['id']
+        # set account as default
+        rv = self.client.put(f'/api/accounts/{account_id}/default')
+        assert rv.status_code == 204
+        # Check for user that has a default account setup
+        rv = self.client.get('/api/users/1/default_account')
+        assert rv.status_code == 200
+        assert rv.json['id'] == account_id
+        assert rv.json['name'] == 'Test Account'
+        # lp_point should not be in the returned json
+        assert 'lp_point' not in rv.json
+
+    def test_get_default_account_by_name(self):
+        # Check if user doesn't have a default account setup
+        rv = self.client.get('/api/users/test/default_account')
+        assert rv.status_code == 403
+        # Check if user doesn't exist
+        rv = self.client.get('/api/users/nextorian/default_account')
+        assert rv.status_code == 404
+        # Register account for user
+        rv = self.client.post('/api/accounts', json={
+            'name': 'Test Account',
+            'lp_point': 1000,
+        })
+        assert rv.status_code == 201
+        account_id = rv.json['id']
+        # set account as default
+        rv = self.client.put(f'/api/accounts/{account_id}/default')
+        assert rv.status_code == 204
+        # Check for user that has a default account setup
+        rv = self.client.get('/api/users/test/default_account')
+        assert rv.status_code == 200
+        assert rv.json['id'] == account_id
+        assert rv.json['name'] == 'Test Account'
+        # lp_point should not be in the returned json
+        assert 'lp_point' not in rv.json
+
     def test_get_me(self):
         rv = self.client.get('/api/me')
         assert rv.status_code == 200
