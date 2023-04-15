@@ -48,7 +48,6 @@ class AccountTest(BaseTestCase):
         assert last_log.attribute_name == ""
         assert last_log.old_value == ""
         assert last_log.new_value == f"Add Account ID: {account_id}"
-        # db.session.close()
 
         # Check if name should be unique
         rv = self.client.post('/api/accounts', json={
