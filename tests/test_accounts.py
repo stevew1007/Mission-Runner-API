@@ -48,7 +48,6 @@ class AccountTest(BaseTestCase):
         assert last_log.attribute_name == ""
         assert last_log.old_value == ""
         assert last_log.new_value == f"Add Account ID: {account_id}"
-        # db.session.close()
 
         # Check if name should be unique
         rv = self.client.post('/api/accounts', json={
@@ -224,6 +223,49 @@ class AccountTest(BaseTestCase):
         rv = self.client.put(f'/api/accounts/{account_id}', json={
             'name': 'noraus'
         }, headers={'Authorization': f'Bearer {another_access_token}'})
+        assert rv.status_code == 401
+
+    def test_set_default(self):
+        # Try to get default account when nothing setup yet.
+        rv = self.client.get('/api/accounts/default', headers={
+            'Authorization': f'Bearer {self.user_access_token}'})
+        assert rv.status_code == 404
+
+        # Add account
+        rv = self.client.post('/api/accounts', json={
+            'name': 'nextorian2',
+            "lp_point": 100
+        }, headers={'Authorization': f'Bearer {self.user_access_token}'})
+        assert rv.status_code == 201
+        account_id = rv.json['id']
+
+        # Set default account
+        rv = self.client.put(f'/api/accounts/{account_id}/default', headers={
+            'Authorization': f'Bearer {self.user_access_token}'})
+        assert rv.status_code == 204
+
+        # Get default account
+        rv = self.client.get('/api/accounts/default', headers={
+            'Authorization': f'Bearer {self.user_access_token}'})
+        assert rv.status_code == 200
+        assert rv.json['id'] == account_id
+
+        # Login with admin
+        rv = self.client.post('/api/tokens', auth=('test', 'foo'))
+        assert rv.status_code == 200
+        admin_token = rv.json['access_token']
+
+        # Add account to admin
+        rv = self.client.post('/api/accounts', json={
+            'name': 'nextorian3',
+            "lp_point": 100
+        }, headers={'Authorization': f'Bearer {admin_token}'})
+        assert rv.status_code == 201
+        account2_id = rv.json['id']
+
+        # Set default account to admin
+        rv = self.client.put(f'/api/accounts/{account2_id}/default', headers={
+            'Authorization': f'Bearer {self.user_access_token}'})
         assert rv.status_code == 401
 
     def test_list_all_but_empty(self):

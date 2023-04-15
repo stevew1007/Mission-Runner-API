@@ -1,16 +1,17 @@
 from apifairy.decorators import other_responses
-from flask import Blueprint, abort
+from flask import Blueprint, abort, jsonify
 from apifairy import authenticate, body, response
 
 from api import db
 from api.models import User, ChangeLog
-from api.schemas import UserSchema, UpdateUserSchema
+from api.schemas import UserSchema, UpdateUserSchema, AccountSchema
 from api.auth import token_auth
 from api.enums import Action
 # from api.decorators import paginated_response
 
 users = Blueprint('users', __name__)
 user_schema = UserSchema()
+account_schema = AccountSchema()
 users_schema = UserSchema(many=True)
 update_user_schema = UpdateUserSchema(partial=True)
 
@@ -59,6 +60,33 @@ def get_by_username(username):
     """Retrieve a user by username"""
     return db.session.scalar(User.select().filter_by(username=username)) or \
         abort(404)
+
+
+@users.route('/users/<int:id>/default_account', methods=['GET'])
+@authenticate(token_auth)
+@other_responses({
+    403: 'Default account not set for user',
+    404: 'User not found'})
+def get_default_account(id):
+    """Retrieve a user default account by id
+    You will only beable to get the id & name of account by this endpoint.
+    """
+    user = db.session.get(User, id) or abort(404)
+    account = user.default_account or abort(403)
+    return jsonify(id=account.id, name=account.name)
+
+
+@users.route('/users/<username>/default_account', methods=['GET'])
+@authenticate(token_auth)
+@other_responses({
+    403: 'Default account not set for user',
+    404: 'User not found'})
+def get_default_account_by_username(username):
+    """Retrieve a user by username"""
+    user = db.session.scalar(User.select().filter_by(username=username)) or \
+        abort(404)
+    account = user.default_account or abort(403)
+    return jsonify(id=account.id, name=account.name)
 
 
 @users.route('/me', methods=['GET'])

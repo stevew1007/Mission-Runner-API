@@ -91,10 +91,12 @@ class User(Updateable, db.Model):
     last_seen: so.Mapped[datetime] = so.mapped_column(default=datetime.utcnow)
 
     # Links
+    # Back_populates link for default payment
+    default_account_id: so.Mapped[int] = so.mapped_column(nullable=True)
     tokens: so.WriteOnlyMapped['Token'] = so.relationship(
         back_populates='user')
     accounts: so.WriteOnlyMapped['Account'] = so.relationship(
-        back_populates='owner')
+        back_populates='owner', foreign_keys='Account.owner_id')
     missions_run: so.WriteOnlyMapped['Mission'] = so.relationship(
         back_populates='runner')
 
@@ -113,6 +115,13 @@ class User(Updateable, db.Model):
     @property
     def password(self):
         raise AttributeError('password is not a readable attribute')
+
+    @property
+    def default_account(self):
+        if self.default_account_id is not None:
+            return db.session.get(Account, self.default_account_id)
+        else:
+            return None
 
     @password.setter
     def password(self, password):
@@ -195,8 +204,6 @@ class Account(Updateable, db.Model):
     owner_id: so.Mapped[int] = so.mapped_column(
         sa.ForeignKey(User.id), index=True)
     owner: so.Mapped['User'] = so.relationship(back_populates='accounts')
-    # missions_published: so.Mapped['Mission'] = so.relationship(
-    #   back_populates='publisher')
     missions_published: so.WriteOnlyMapped['Mission'] = so.relationship(
         back_populates='publisher')
 

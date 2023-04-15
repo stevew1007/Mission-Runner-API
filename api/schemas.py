@@ -83,7 +83,8 @@ class UserSchema(ma.SQLAlchemySchema):
     avatar_url = ma.String(
         dump_only=True,
         description="Using gravatar for the email address")
-    # about_me = ma.auto_field()
+    default_account_id = ma.String(
+        dump_only=True, description="Default account for user")
     birthday = ma.auto_field(
         dump_only=True, description="Date when user registered.")
     last_seen = ma.auto_field(

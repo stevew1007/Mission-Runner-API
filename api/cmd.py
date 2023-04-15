@@ -13,15 +13,17 @@ cmd = Blueprint('cmd', __name__)
 
 @cmd.cli.command()
 # @click.argument('num', type=int)
-def admin():  # pragma: no cover
+def admin(password='admin'):  # pragma: no cover
     """Create the admin user."""
     db.create_all()
+
     user = User(
-            username='admin',
-            email='admin@example.com',
-            password='admin',
-            im_number='10000',
-            role=Role.ADMIN.value)
+        username='admin',
+        email='admin@example.com',
+        password=password,
+        im_number='10000',
+        role=Role.ADMIN.value
+    )
 
     db.session.add(user)
     db.session.commit()
