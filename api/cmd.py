@@ -2,10 +2,10 @@
 # import click
 from flask import Blueprint
 
-# from faker import Faker
 from api.app import db
-from api.models import User
 from api.enums import Role
+from api.models import User
+# from faker import Faker
 
 cmd = Blueprint('cmd', __name__)
 # faker = Faker()
@@ -22,7 +22,7 @@ def admin(password='admin'):  # pragma: no cover
         email='admin@example.com',
         password=password,
         im_number='10000',
-        role=Role.ADMIN.value
+        role=Role.ADMIN.value,
     )
 
     db.session.add(user)

@@ -1,12 +1,19 @@
+from apifairy import authenticate
+from apifairy import body
+from apifairy import response
 from apifairy.decorators import other_responses
-from flask import Blueprint, abort, jsonify
-from apifairy import authenticate, body, response
+from flask import abort
+from flask import Blueprint
+from flask import jsonify
 
 from api import db
-from api.models import User, ChangeLog
-from api.schemas import UserSchema, UpdateUserSchema, AccountSchema
 from api.auth import token_auth
 from api.enums import Action
+from api.models import ChangeLog
+from api.models import User
+from api.schemas import AccountSchema
+from api.schemas import UpdateUserSchema
+from api.schemas import UserSchema
 # from api.decorators import paginated_response
 
 users = Blueprint('users', __name__)
@@ -32,9 +39,9 @@ def new(args):
         object_id=user.id,
         operation=Action.INSERT.value,
         requester_id=user.id,
-        attribute_name="",
-        old_value="",
-        new_value=f"Add User ID:{user.id}"
+        attribute_name='',
+        old_value='',
+        new_value=f'Add User ID:{user.id}',
     )
 
     # Save data
@@ -66,7 +73,8 @@ def get_by_username(username):
 @authenticate(token_auth)
 @other_responses({
     403: 'Default account not set for user',
-    404: 'User not found'})
+    404: 'User not found',
+})
 def get_default_account(id):
     """Retrieve a user default account by id
     You will only beable to get the id & name of account by this endpoint.
@@ -80,7 +88,8 @@ def get_default_account(id):
 @authenticate(token_auth)
 @other_responses({
     403: 'Default account not set for user',
-    404: 'User not found'})
+    404: 'User not found',
+})
 def get_default_account_by_username(username):
     """Retrieve a user by username"""
     user = db.session.scalar(User.select().filter_by(username=username)) or \
@@ -108,15 +117,19 @@ def put(data):
     user = token_auth.current_user()
 
     # Setup
-    prev = {key: getattr(user, key)
-            for key in dict(data).keys()
-            if key not in ['password', 'old_password']}
+    prev = {
+        key: getattr(user, key)
+        for key in dict(data).keys()
+        if key not in ['password', 'old_password']
+    }
     if 'password' in data and 'old_password' in data:
         prev['password_hash'] = user.password_hash
 
     # Gatekeeper
-    if 'password' in data and ('old_password' not in data or
-                               not user.verify_password(data['old_password'])):
+    if 'password' in data and (
+        'old_password' not in data or
+        not user.verify_password(data['old_password'])
+    ):
         abort(400)
 
     # Modification
@@ -137,7 +150,7 @@ def put(data):
             requester_id=user.id,
             attribute_name=key,
             old_value=prev[key],
-            new_value=getattr(user, key)
+            new_value=getattr(user, key),
         )
         db.session.add(change)
         # db.session.commit()

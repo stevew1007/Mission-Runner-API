@@ -13,7 +13,7 @@ class Role(Enum):
 
     @staticmethod
     def to_str():
-        return ",".join([r.value for r in Role])
+        return ','.join([r.value for r in Role])
 
 
 class Status(Enum):
@@ -30,7 +30,7 @@ class Status(Enum):
 
     @staticmethod
     def to_str():
-        return ",".join([r.value for r in Status])
+        return ','.join([r.value for r in Status])
 
 
 class Action(Enum):

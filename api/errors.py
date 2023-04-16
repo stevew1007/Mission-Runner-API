@@ -1,6 +1,9 @@
-from flask import Blueprint, current_app
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from werkzeug.exceptions import HTTPException, InternalServerError
+from flask import Blueprint
+from flask import current_app
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import SQLAlchemyError
+from werkzeug.exceptions import HTTPException
+from werkzeug.exceptions import InternalServerError
 
 from api.app import apifairy
 
@@ -46,7 +49,9 @@ def validation_error(code, messages):  # pragma: no cover
     return {
         'code': code,
         'message': 'Validation Error',
-        'description': ('The server found one or more errors in the '
-                        'information that you sent.'),
+        'description': (
+            'The server found one or more errors in the '
+            'information that you sent.'
+        ),
         'errors': messages,
     }, code

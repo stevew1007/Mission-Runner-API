@@ -1,4 +1,5 @@
 import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -22,8 +23,11 @@ class Config:
     DISABLE_AUTH = as_bool(os.environ.get('DISABLE_AUTH'))
     ACCESS_TOKEN_MINUTES = int(os.environ.get('ACCESS_TOKEN_MINUTES') or '15')
     REFRESH_TOKEN_DAYS = int(os.environ.get('REFRESH_TOKEN_DAYS') or '7')
-    REFRESH_TOKEN_IN_COOKIE = as_bool(os.environ.get(
-        'REFRESH_TOKEN_IN_COOKIE') or 'yes')
+    REFRESH_TOKEN_IN_COOKIE = as_bool(
+        os.environ.get(
+            'REFRESH_TOKEN_IN_COOKIE',
+        ) or 'yes',
+    )
     REFRESH_TOKEN_IN_BODY = as_bool(os.environ.get('REFRESH_TOKEN_IN_BODY'))
     RESET_TOKEN_MINUTES = int(os.environ.get('RESET_TOKEN_MINUTES') or '15')
     PASSWORD_RESET_URL = os.environ.get('PASSWORD_RESET_URL') or \
@@ -43,7 +47,9 @@ class Config:
     MAIL_USE_TLS = as_bool(os.environ.get('MAIL_USE_TLS'))
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
-    MAIL_DEFAULT_SENDER=os.environ.get('MAIL_DEFAULT_SENDER',
-                                       'donotreply@microblog.example.com')
-    
+    MAIL_DEFAULT_SENDER = os.environ.get(
+        'MAIL_DEFAULT_SENDER',
+        'donotreply@microblog.example.com',
+    )
+
     FLASK_ADMIN_SWATCH = 'cerulean'

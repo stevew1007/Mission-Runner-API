@@ -69,7 +69,7 @@ Create the database :
 ```bash
 flask db upgrade
 ```
-[Optional]Setup the admin account 
+[Optional]Setup the admin account
 ```
 flask cmd admin
 ```

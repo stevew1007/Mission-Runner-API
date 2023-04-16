@@ -6,7 +6,7 @@ on:
       - develop/*
       - feature/*
   pull_request:
-  
+
 jobs:
   lint:
     name: lint
@@ -46,7 +46,6 @@ jobs:
           tox
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
-        with: 
+        with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
-

@@ -1,16 +1,26 @@
 from datetime import datetime
-from apifairy.decorators import other_responses
-from apifairy import authenticate, body, response
 
-from flask import Blueprint, abort
+from apifairy import authenticate
+from apifairy import body
+from apifairy import response
+from apifairy.decorators import other_responses
+from flask import abort
+from flask import Blueprint
 
 from api import db
-from api.models import Account, ChangeLog, Mission
-from api.enums import Action, Status, Role
-from api.schemas import AccountSchema, DateTimePaginationSchema,\
-    MissionSchema, EmptySchema, MissionMultAcceptsSchema
 from api.auth import token_auth
 from api.decorators import paginated_response
+from api.enums import Action
+from api.enums import Role
+from api.enums import Status
+from api.models import Account
+from api.models import ChangeLog
+from api.models import Mission
+from api.schemas import AccountSchema
+from api.schemas import DateTimePaginationSchema
+from api.schemas import EmptySchema
+from api.schemas import MissionMultAcceptsSchema
+from api.schemas import MissionSchema
 
 missions = Blueprint('missions', __name__)
 # user_schema = UserSchema()
@@ -28,9 +38,11 @@ update_account_schema = AccountSchema(partial=True)
 @authenticate(token_auth)
 @body(mission_schema)
 @response(mission_schema, 201)
-@other_responses({401: 'User cannot edit account info for others',
-                  403: 'Account is not activated',
-                  404: 'Account not found'})
+@other_responses({
+    401: 'User cannot edit account info for others',
+    403: 'Account is not activated',
+    404: 'Account not found',
+})
 def publish(args, id):
     """Publish a mission from an account
     **Note**: User can only publish mission
@@ -62,8 +74,8 @@ def publish(args, id):
         operation=Action.INSERT.value,
         requester_id=user.id,
         attribute_name='',
-        old_value="",
-        new_value=f"Add Mission ID: {mission.id}"
+        old_value='',
+        new_value=f'Add Mission ID: {mission.id}',
     )
 
     # Save data
@@ -84,9 +96,11 @@ def get(id):
 
 @missions.route('/missions/<galaxy>', methods=['GET'])
 @authenticate(token_auth)
-@paginated_response(missions_schema, order_by=Mission.created,
-                    order_direction='desc',
-                    pagination_schema=DateTimePaginationSchema)
+@paginated_response(
+    missions_schema, order_by=Mission.created,
+    order_direction='desc',
+    pagination_schema=DateTimePaginationSchema,
+)
 def get_byGalaxy(galaxy):
     """Retrieve list of missions by galaxy
     """
@@ -95,9 +109,11 @@ def get_byGalaxy(galaxy):
 
 @missions.route('/accounts/<int:id>/missions', methods=['GET'])
 @authenticate(token_auth)
-@paginated_response(missions_schema, order_by=Mission.created,
-                    order_direction='desc',
-                    pagination_schema=DateTimePaginationSchema)
+@paginated_response(
+    missions_schema, order_by=Mission.created,
+    order_direction='desc',
+    pagination_schema=DateTimePaginationSchema,
+)
 @other_responses({404: 'Account not found'})
 def get_byOwner(id):
     """Retrieve missions published by account
@@ -108,11 +124,15 @@ def get_byOwner(id):
 
 @missions.route('/missions/<int:id>/accept', methods=['POST'])
 @authenticate(token_auth, role=[Role.MISSION_RUNNER.value, Role.ADMIN.value])
-@response(EmptySchema, status_code=204,
-          description='User accepts mission successfully')
-@other_responses({400: "Mission already accepted by others",
-                  403: "This mission cannot be accepted",
-                  404: 'Mission not found'})
+@response(
+    EmptySchema, status_code=204,
+    description='User accepts mission successfully',
+)
+@other_responses({
+    400: 'Mission already accepted by others',
+    403: 'This mission cannot be accepted',
+    404: 'Mission not found',
+})
 def accepts(id):
     """Accepts a mission
     **Note**: Only mission runner or admin can accepts mission.
@@ -124,18 +144,20 @@ def accepts(id):
     # Setup
     mission = db.session.get(Mission, id) or abort(404)
     prev = {
-        'runner': "" if mission.runner is None else mission.runner.id,
-        'status': mission.status
+        'runner': '' if mission.runner is None else mission.runner.id,
+        'status': mission.status,
     }
     data = {
         'runner': user,
-        'status': Status.ACCEPTED.value
+        'status': Status.ACCEPTED.value,
     }
 
     # Gatekeeper
     if mission.status in \
-        [Status.DRAFT.value, Status.ACCEPTED.value,
-         Status.COMPLETED.value, Status.ARCHIVED.value]:
+            [
+                Status.DRAFT.value, Status.ACCEPTED.value,
+                Status.COMPLETED.value, Status.ARCHIVED.value,
+            ]:
         if mission.runner is not None:
             if mission.runner_id != user.id:
                 abort(400)
@@ -162,7 +184,7 @@ def accepts(id):
                 requester_id=user.id,
                 attribute_name=key,
                 old_value=prev_val,
-                new_value=new_val
+                new_value=new_val,
             )
             db.session.add(change)
 
