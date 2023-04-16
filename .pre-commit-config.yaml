@@ -62,3 +62,4 @@ repos:
             always_run: true
             language: python
             verbose: true
+            stages: [push]

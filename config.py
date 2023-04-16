@@ -1,9 +1,14 @@
 import os
+import subprocess
 
 from dotenv import load_dotenv
 
 load_dotenv()
 basedir = os.path.abspath(os.path.dirname(__file__))
+version = subprocess.run(
+    ['git', 'describe', '--tags'],
+    capture_output=True,
+).stdout.decode('utf-8').strip()
 
 
 def as_bool(value):
@@ -37,7 +42,7 @@ class Config:
 
     # API documentation
     APIFAIRY_TITLE = 'Mission Runner API'
-    APIFAIRY_VERSION = '0.1'
+    APIFAIRY_VERSION = version
     APIFAIRY_UI = os.environ.get('DOCS_UI', 'elements')
     APIFAIRY_TAGS = ['tokens', 'users']
 

@@ -1,4 +1,5 @@
-[tool.commitizen]
-name = "cz_conventional_commits"
-version = "0.0.1"
-tag_format = "v$version"
+[tool.semantic_release]
+version_variable = [
+    'conf.py:version',
+]
+version_source = 'tag_only'
