@@ -277,6 +277,9 @@ class MissionSchema(ma.SQLAlchemySchema):
     status = ma.auto_field(
         dump_only=True, description='Current status of the mission',
     )
+    next_step = ma.String(
+        dump_only=True, descriptions='Next step of the mission status',
+    )
     publisher = ma.Nested(
         AccountSchema, dump_only=True, nullable=False,
         description='Account that publishes this mission.',

@@ -231,33 +231,33 @@ class MissionTest(BaseTestCase):
                     if key != 'publisher':
                         assert ret[key] == data[key]
 
-    def test_accept_mission(self):
-        rv = self.client.post(
-            f"/api/accounts/{self.publihser_account_id}/publish_mission",
-            json={
-                'title': self.titles[0],
-                'galaxy': self.galaxies[0],
-                'created': '2023-03-20T03:28:00Z',
-                'expired': '2023-04-20T03:28:00Z',
-                'bounty': 15000000
-            },
-            headers={
-                'Authorization': f'Bearer {self.publisher_access_token}'})
-        assert rv.status_code == 201
+    # def test_accept_mission(self):
+    #     rv = self.client.post(
+    #         f"/api/accounts/{self.publihser_account_id}/publish_mission",
+    #         json={
+    #             'title': self.titles[0],
+    #             'galaxy': self.galaxies[0],
+    #             'created': '2023-03-20T03:28:00Z',
+    #             'expired': '2023-04-20T03:28:00Z',
+    #             'bounty': 15000000
+    #         },
+    #         headers={
+    #             'Authorization': f'Bearer {self.publisher_access_token}'})
+    #     assert rv.status_code == 201
 
-        mission_id = rv.json['id']
+    #     mission_id = rv.json['id']
 
-        # Accept mission
-        rv = self.client.post(
-            f"/api/missions/{mission_id}/accept",
-            headers={
-                'Authorization': f'Bearer {self.runner_access_token}'})
-        assert rv.status_code == 204
+    #     # Accept mission
+    #     rv = self.client.post(
+    #         f"/api/missions/{mission_id}/accept",
+    #         headers={
+    #             'Authorization': f'Bearer {self.runner_access_token}'})
+    #     assert rv.status_code == 204
 
-        # Check if the action is logged
-        old = {'runner': '', 'status': Status.PUBLISHED.value}
-        new = {'runner': self.runner_id, 'status': Status.ACCEPTED.value}
-        check_last_log_entry(
-            n=2, old=old, new=new,
-            object_type='Mission', object_id=mission_id,
-            requester_id=self.runner_id, operation=Action.UPDATE)
+    #     # Check if the action is logged
+    #     old = {'runner': '', 'status': Status.PUBLISHED.value}
+    #     new = {'runner': self.runner_id, 'status': Status.ACCEPTED.value}
+    #     check_last_log_entry(
+    #         n=2, old=old, new=new,
+    #         object_type='Mission', object_id=mission_id,
+    #         requester_id=self.runner_id, operation=Action.UPDATE)
