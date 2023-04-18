@@ -23,11 +23,6 @@ from api.schemas import MissionMultAcceptsSchema
 from api.schemas import MissionSchema
 
 missions = Blueprint('missions', __name__)
-# user_schema = UserSchema()
-# users_schema = UserSchema(many=True)
-# update_user_schema = UpdateUserSchema(partial=True)
-# account_schema = AccountSchema()
-# accounts_schema = AccountSchema(many=True)
 mission_schema = MissionSchema()
 missions_schema = MissionSchema(many=True)
 multiaccept_shema = MissionMultAcceptsSchema()
@@ -60,9 +55,11 @@ def publish(args, id):
         abort(401)
     if not account.is_activated():
         abort(403)
+    if args.get('expired') is not None:
+        # Make sure the expired time is valid
+        if args.get('expired').timestamp() < datetime.utcnow().timestamp():
+            abort(400, 'Expired time is invalid')
 
-    # Modification
-    # account.update(data)
     mission = Mission(publisher=account, **args)
     db.session.add(mission)
     db.session.commit()
@@ -122,51 +119,76 @@ def get_byOwner(id):
     return account.missions_published.select()
 
 
-@missions.route('/missions/<int:id>/accept', methods=['POST'])
-@authenticate(token_auth, role=[Role.MISSION_RUNNER.value, Role.ADMIN.value])
+@missions.route('/missions/<int:id>/<string:action>', methods=['POST'])
+@authenticate(token_auth)
 @response(
     EmptySchema, status_code=204,
-    description='User accepts mission successfully',
+    description='Mission status updated successfully',
 )
 @other_responses({
-    400: 'Mission already accepted by others',
-    403: 'This mission cannot be accepted',
+    401: 'Operation not allowed',
+    403: 'Mission expired',
     404: 'Mission not found',
 })
-def accepts(id):
-    """Accepts a mission
-    **Note**: Only mission runner or admin can accepts mission.
-    """
+def next_step(id, action):
+    """Update mission status
+    Update mission status to the next step.
 
+    You can only call action
+    specified in the next_step property. Program will error out
+    if action is invalid.
+
+    Check `api.enums.Status.next` for the completed workflow
+
+    Mark mission `ISSUE` if discripency found useing issue endpoint.
+    """
     # Issuer
     user = token_auth.current_user()
 
     # Setup
     mission = db.session.get(Mission, id) or abort(404)
     prev = {
-        'runner': '' if mission.runner is None else mission.runner.id,
         'status': mission.status,
     }
     data = {
-        'runner': user,
-        'status': Status.ACCEPTED.value,
+        'status': action,
     }
 
     # Gatekeeper
-    if mission.status in \
-            [
-                Status.DRAFT.value, Status.ACCEPTED.value,
-                Status.COMPLETED.value, Status.ARCHIVED.value,
-            ]:
-        if mission.runner is not None:
-            if mission.runner_id != user.id:
-                abort(400)
-            if mission.publisher.owner_id == user.id:
-                abort(403)
-        else:
-            abort(403)
-    if mission.expired < datetime.now():
-        abort(403)
+    if Status.isTerminal(mission.status):
+        # Mission in terminal state cannot be updated by this EP.
+        abort(401)
+
+    if action not in mission.next_step:
+        abort(401)
+
+    if action == Status.PUBLISHED.value:
+        # This handles the excption case when runner cannot complete mission
+        # and make it available for other runner to accept
+        if mission.runner_id != user.id:
+            abort(401)
+
+        prev['runner'] = '' if mission.runner is None else mission.runner.id
+        data['runner'] = None
+
+    if action == Status.ACCEPTED.value:
+        if mission.expired < datetime.utcnow():
+            abort(403)  # Only consider expiry when accepts mission.
+        if user.role == Role.MISSION_PUBLISHER.value:
+            abort(401)  # Publisher access cannot accepts mission
+
+        prev['runner'] = '' if mission.runner is None else mission.runner.id
+        data['runner'] = user
+
+    # Accepted runner only
+    if action in [Status.COMPLETED.value, Status.DONE.value]:
+        if mission.runner_id != user.id:
+            abort(401)
+
+    # Mission Onwer only
+    if action in [Status.PAID.value, Status.ARCHIVED.value]:
+        if mission.publisher.owner_id != user.id:
+            abort(401)
 
     # Modification
     mission.update(data)
@@ -190,67 +212,3 @@ def accepts(id):
 
     # Save data
     db.session.commit()
-
-
-# @missions.route('/missions/accept_missions', methods=['POST'])
-# @authenticate(token_auth, role=[Role.MISSION_RUNNER.value, Role.ADMIN.value])
-# @body(multiaccept_shema)
-# @response(EmptySchema, status_code=204,
-#           description='User accepts mission successfully')
-# @other_responses({400: "One of the Mission has already accepted by others",
-#                   403: "One of the mission cannot be accepted",
-#                   404: 'One of the Mission is not found'})
-# def accept_multiple(data):
-#     """Accepts multiple mission
-#     **Note**: Only mission runner or admin can accepts mission.
-#     """
-
-#     # Issuer
-#     user = token_auth.current_user()
-
-#     # Setup
-#     target_val = {
-#         'runner_id': user,
-#         'status': Status.ACCEPTED.value
-#     }
-
-#     # Gatekeeper
-#     # Makesure each ID checks out before changes in Database.
-#     for id in data["mission_id_list"]:
-#         mission = db.session.get(Mission, id) or abort(404)
-#         if mission.status in \
-#             [Status.DRAFT.value, Status.ACCEPTED.value,
-#              Status.COMPLETED.value, Status.ARCHIVED.value]:
-#             if mission.runner is not None:
-#                 if mission.runner_id != user.id:
-#                     abort(400)
-#                 if mission.publisher.owner_id == user.id:
-#                     abort(403)
-#             else:
-#                 abort(403)
-
-#     # Modification
-#     prev = dict()
-#     for id in data["mission_id_list"]:
-#         mission = db.session.get(Mission, id) or abort(404)
-#         prev = {
-#           key: getattr(mission, key) for key in dict(target_val).keys()}
-
-#         mission.update(target_val)
-
-#         # Track changes
-#         for key in dict(target_val).keys():
-#             if getattr(mission, key) is not None:
-#                 change = ChangeLog(
-#                     object_type=type(mission).__name__,
-#                     object_id=mission.id,
-#                     operation=Action.UPDATE.value,
-#                     requester_id=user.id,
-#                     attribute_name=key,
-#                     old_value=prev[key],
-#                     new_value=getattr(user, key)
-#                 )
-#                 db.session.add(change)
-
-#     # Save data
-#     db.session.commit()

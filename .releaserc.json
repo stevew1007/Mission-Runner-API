@@ -1,7 +1,7 @@
 {
   "branches": [
-    "main",
-    "^develop.*$"
+    "master",
+    "develop/*"
   ],
   "plugins": [
     "@semantic-release/commit-analyzer",
@@ -9,6 +9,5 @@
     "@semantic-release/changelog"
   ],
   "preset": "angular",
-  "tagFormat": "v${version}",
-  "dryRun": true
+  "tagFormat": "v${version}"
 }

@@ -265,6 +265,7 @@ class Mission(Updateable, BaseModel):
     created: so.Mapped[datetime]
     expired: so.Mapped[datetime]
     bounty: so.Mapped[int] = so.mapped_column(nullable=False)
+    remark: so.Mapped[str] = so.mapped_column(sa.String(), nullable=True)
 
     # Status Related
     status: so.Mapped[str] = so.mapped_column(
@@ -283,15 +284,10 @@ class Mission(Updateable, BaseModel):
     )
     runner: so.Mapped['User'] = so.relationship(back_populates='missions_run')
 
-    # @so.validates('status')
-    # def validate_status(self, key, value):
-    #     allowed_status = ['published', 'accepted', 'completed', "archived"]
-    #     if value not in allowed_status:
-    #         raise ValueError(
-    #             f"Invalid status: {value}. \
-    #                 Allowed stat are {', '.join(allowed_status)}.")
-    #     return value
-
     @property
     def url(self):
         return url_for('missions.get', id=self.id)
+
+    @property
+    def next_step(self):
+        return Status.next(self.status)
