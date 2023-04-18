@@ -9,5 +9,6 @@
     "@semantic-release/changelog"
   ],
   "preset": "angular",
-  "tagFormat": "v${version}"
+  "tagFormat": "v${version}",
+  "repositoryUrl": "https://github.com/stevew1007/Mission-Runner-API"
 }
