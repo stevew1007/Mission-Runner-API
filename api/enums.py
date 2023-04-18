@@ -17,7 +17,6 @@ class Role(Enum):
 
 
 class Status(Enum):
-    DRAFT = 'draft'
     PUBLISHED = 'published'
     ACCEPTED = 'accepted'
     COMPLETED = 'completed'
@@ -57,7 +56,7 @@ class Status(Enum):
         return value in [
             Status.DONE.value,
             Status.ARCHIVED.value,
-            Status.ISSUE,
+            Status.ISSUE.value,
         ]
 
 
