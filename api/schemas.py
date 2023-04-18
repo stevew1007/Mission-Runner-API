@@ -277,7 +277,8 @@ class MissionSchema(ma.SQLAlchemySchema):
     status = ma.auto_field(
         dump_only=True, description='Current status of the mission',
     )
-    next_step = ma.String(
+    next_step = ma.List(
+        ma.String(),
         dump_only=True, descriptions='Next step of the mission status',
     )
     publisher = ma.Nested(

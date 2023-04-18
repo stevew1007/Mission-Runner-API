@@ -55,9 +55,11 @@ def publish(args, id):
         abort(401)
     if not account.is_activated():
         abort(403)
+    if args.get('expired') is not None:
+        # Make sure the expired time is valid
+        if args.get('expired').timestamp() < datetime.utcnow().timestamp():
+            abort(400, 'Expired time is invalid')
 
-    # Modification
-    # account.update(data)
     mission = Mission(publisher=account, **args)
     db.session.add(mission)
     db.session.commit()
@@ -149,15 +151,16 @@ def next_step(id, action):
         'status': mission.status,
     }
     data = {
-        'status': mission.next_step,
+        'status': action,
     }
 
     # Gatekeeper
-    if action not in mission.next_step:
+    if Status.isTerminal(mission.status):
+        # Mission in terminal state cannot be updated by this EP.
         abort(401)
 
-    if mission.expired < datetime.now():
-        abort(403)
+    if action not in mission.next_step:
+        abort(401)
 
     if action == Status.PUBLISHED.value:
         # This handles the excption case when runner cannot complete mission
@@ -166,14 +169,16 @@ def next_step(id, action):
             abort(401)
 
         prev['runner'] = '' if mission.runner is None else mission.runner.id
-        data['runner'] = ''  # Unset runner
+        data['runner'] = None
 
     if action == Status.ACCEPTED.value:
+        if mission.expired < datetime.utcnow():
+            abort(403)  # Only consider expiry when accepts mission.
         if user.role == Role.MISSION_PUBLISHER.value:
             abort(401)  # Publisher access cannot accepts mission
 
         prev['runner'] = '' if mission.runner is None else mission.runner.id
-        data['runner'] = user.id
+        data['runner'] = user
 
     # Accepted runner only
     if action in [Status.COMPLETED.value, Status.DONE.value]:
@@ -182,7 +187,7 @@ def next_step(id, action):
 
     # Mission Onwer only
     if action in [Status.PAID.value, Status.ARCHIVED.value]:
-        if mission.publisher_id != user.id:
+        if mission.publisher.owner_id != user.id:
             abort(401)
 
     # Modification

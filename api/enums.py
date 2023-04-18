@@ -17,6 +17,7 @@ class Role(Enum):
 
 
 class Status(Enum):
+    DRAFT = 'draft'
     PUBLISHED = 'published'
     ACCEPTED = 'accepted'
     COMPLETED = 'completed'
@@ -46,10 +47,18 @@ class Status(Enum):
             return [Status.PAID.value]
         elif value == Status.PAID.value:
             return [Status.DONE.value]
-        elif value == Status.ISSUE.value:
-            return Status.ISSUE.value  # No change
+        elif value in [Status.DONE.value, Status.ARCHIVED.value, Status.ISSUE]:
+            return [value]  # Termial state will return itself.
         else:
             raise ValueError(f'Invalid type {value}')
+
+    @staticmethod
+    def isTerminal(value: str):
+        return value in [
+            Status.DONE.value,
+            Status.ARCHIVED.value,
+            Status.ISSUE,
+        ]
 
 
 class Action(Enum):
