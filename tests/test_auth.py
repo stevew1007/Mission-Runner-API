@@ -67,7 +67,10 @@ class AuthTests(BaseTestCase):
         refresh_token1 = rv.json['refresh_token']
 
         rv = self.client.put(
-            '/api/tokens', json={'access_token': access_token1},
+            '/api/tokens', json={
+                'access_token': access_token1,
+                'refresh_token': refresh_token1
+            },
             headers={'Cookie': 'refresh_token=' + refresh_token1})
         assert rv.status_code == 200
         assert rv.json['access_token'] != access_token1
@@ -119,7 +122,8 @@ class AuthTests(BaseTestCase):
         refresh_token2 = rv.json['refresh_token']
 
         rv = self.client.put('/api/tokens', json={
-            'access_token': access_token2})
+            'access_token': access_token2,
+            'refresh_token': refresh_token2})
         assert rv.status_code == 200
         access_token3 = rv.json['access_token']
         refresh_token3 = rv.json['refresh_token']

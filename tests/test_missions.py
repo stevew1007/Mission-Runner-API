@@ -521,7 +521,9 @@ class MissionTest(BaseTestCase):
                 'title': self.titles[0],
                 'galaxy': self.galaxies[0],
                 'created': '2023-03-20T03:28:00Z',
-                'expired': '2023-04-20T03:28:00Z',
+                'expired': (
+                    datetime.utcnow()+timedelta(days=3)
+                ).strftime('%Y-%m-%dT%H:%M:%SZ'),
                 'bounty': 15000000
             },
             headers={
