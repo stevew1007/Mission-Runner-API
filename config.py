@@ -31,9 +31,11 @@ class Config:
     REFRESH_TOKEN_IN_COOKIE = as_bool(
         os.environ.get(
             'REFRESH_TOKEN_IN_COOKIE',
-        ) or 'yes',
+        ),
     )
-    REFRESH_TOKEN_IN_BODY = as_bool(os.environ.get('REFRESH_TOKEN_IN_BODY'))
+    REFRESH_TOKEN_IN_BODY = as_bool(
+        os.environ.get('REFRESH_TOKEN_IN_BODY') or 'yes',
+    )
     RESET_TOKEN_MINUTES = int(os.environ.get('RESET_TOKEN_MINUTES') or '15')
     PASSWORD_RESET_URL = os.environ.get('PASSWORD_RESET_URL') or \
         'http://localhost:3000/reset'
