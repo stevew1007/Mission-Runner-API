@@ -23,6 +23,7 @@ def admin(password='admin'):  # pragma: no cover
         password=password,
         im_number='10000',
         role=Role.ADMIN.value,
+        # default_account_id=None
     )
 
     db.session.add(user)
