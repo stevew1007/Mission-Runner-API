@@ -144,6 +144,50 @@ class MissionTest(BaseTestCase):
             headers={'Authorization': f'Bearer {self.publisher_access_token}'})
         assert rv.status_code == 400
 
+    def test_publish_mission_duplicate(self):
+        timestamp = (
+            datetime.utcnow()+timedelta(days=3)
+        ).strftime('%Y-%m-%dT%H:%M:%SZ')
+        rv = self.client.post(
+            f'/api/accounts/{self.publihser_account_id}/publish_mission',
+            json={
+                'title': 'jump gate',
+                'galaxy': 'YP-J33',
+                'created': '2023-03-20T03:28:00Z',
+                'expired': timestamp,
+                'bounty': 15000000
+            },
+            headers={'Authorization': f'Bearer {self.publisher_access_token}'})
+        assert rv.status_code == 201
+
+        rv = self.client.post(
+            f'/api/accounts/{self.publihser_account_id}/publish_mission',
+            json={
+                'title': 'jump gate',
+                'galaxy': 'YP-J33',
+                'created': '2023-03-20T03:28:00Z',
+                'expired': timestamp,
+                'bounty': 15000000
+            },
+            headers={'Authorization': f'Bearer {self.publisher_access_token}'})
+        assert rv.status_code == 400
+        assert rv.json['description'] == 'Mission already published'
+
+        timestamp = (
+            datetime.utcnow()+timedelta(days=3)
+        ).strftime('%Y-%m-%dT%H:%M:%SZ')
+        rv = self.client.post(
+            f'/api/accounts/{self.publihser_account_id}/publish_mission',
+            json={
+                'title': '萨沙混乱地点 ( 跃迁门 )',
+                'galaxy': 'CSOA-B',
+                'created': '2023-04-20T22:58:00Z',
+                'expired': timestamp,
+                'bounty': 15000000
+            },
+            headers={'Authorization': f'Bearer {self.publisher_access_token}'})
+        assert rv.status_code == 201
+
     def test_publish_mission(self):
         timestamp = (
             datetime.utcnow()+timedelta(days=3)
@@ -185,12 +229,15 @@ class MissionTest(BaseTestCase):
     def test_get_missions_by_galaxy(self):
         # generate 10 missions with random galaxy and title
         for i in range(10):
+            # time.sleep(1)
             rv = self.client.post(
                 f"/api/accounts/{self.publihser_account_id}/publish_mission",
                 json={
                     'title': self.titles[i % 6],
                     'galaxy': self.galaxies[i % 3],
-                    'created': '2023-03-20T03:28:00Z',
+                    'created': (
+                        datetime.utcnow()-timedelta(hours=i)
+                    ).strftime('%Y-%m-%dT%H:%M:%SZ'),
                     'expired': (
                         datetime.utcnow()+timedelta(days=3)
                     ).strftime('%Y-%m-%dT%H:%M:%SZ'),
@@ -270,19 +317,23 @@ class MissionTest(BaseTestCase):
 
         # generate 10 missions with random account
         for i in range(10):
+            # time.sleep(1)
             rv = self.client.post(
                 f"/api/accounts/{accounts_info[i % 3]}/publish_mission",
                 json={
                     'title': self.titles[i % 6],
                     'galaxy': self.galaxies[i % 3],
-                    'created': '2023-03-20T03:28:00Z',
+                    'created': (
+                        datetime.now()-timedelta(hours=i)
+                    ).strftime('%Y-%m-%dT%H:%M:%SZ'),
                     'expired': (
-                        datetime.utcnow()+timedelta(days=3)
+                        datetime.now()+timedelta(days=3)
                     ).strftime('%Y-%m-%dT%H:%M:%SZ'),
                     'bounty': 15000000
                 },
                 headers={
                     'Authorization': f'Bearer {user_access}'})
+            # assert rv.json == {'message': 'Mission published'}
             assert rv.status_code == 201
             mission_data[accounts_info[i % 3]].append(rv.json)
 
@@ -300,9 +351,136 @@ class MissionTest(BaseTestCase):
                     'Authorization': f'Bearer {user_access}'})
             assert rv.status_code == 200
 
+            rv_data = sorted(rv.json['data'], key=lambda x: x['id'])
+            mission_data[account_id] = sorted(
+                mission_data[account_id],
+                key=lambda x: x['id']
+            )
             # check if the rv.json['data'] have same data as mission_data
             # (only check id for publisher because User.last_seen changes)
-            for ret, data in zip(rv.json['data'], mission_data[account_id]):
+            for ret, data in zip(rv_data, mission_data[account_id]):
+                assert ret['publisher']['id'] == data['publisher']['id']
+                for key in ret.keys():
+                    if key != 'publisher':
+                        assert ret[key] == data[key]
+
+    def test_get_mission_by_user_and_state(self):
+        # create_multiple_account
+        accounts_info = list()
+        for i in range(3):
+            rv = self.client.post('/api/accounts', json={
+                'name': f'{i+1}0seconds',
+                "lp_point": 100
+            }, headers={
+                'Authorization': f'Bearer {self.publisher_access_token}'})
+            assert rv.status_code == 201
+            acc_id = rv.json['id']
+            accounts_info.append(acc_id)
+
+            check_last_log_entry(
+                n=1, old={}, new={},
+                object_type='Account', object_id=acc_id,
+                requester_id=self.publihser_user_id, operation=Action.INSERT
+            )
+
+            # Activate account
+            rv = self.client.post(
+                f'/api/admin/accounts/{acc_id}/activate',
+                headers={'Authorization': f'Bearer {self.admin_access_token}'})
+            assert rv.status_code == 204
+
+            check_last_log_entry(
+                n=1, old={'activated': '0'}, new={'activated': '1'},
+                object_type='Account', object_id=acc_id,
+                requester_id=self.admin_id, operation=Action.UPDATE
+            )
+
+        mission_data = {id: [] for id in accounts_info}
+
+        # generate 10 missions with random account
+        for i in range(10):
+            # time.sleep(1)
+            rv = self.client.post(
+                f"/api/accounts/{accounts_info[i % 3]}/publish_mission",
+                json={
+                    'title': self.titles[i % 6],
+                    'galaxy': self.galaxies[i % 3],
+                    'created': (
+                        datetime.now()-timedelta(hours=i)
+                    ).strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    'expired': (
+                        datetime.now()+timedelta(days=3)
+                    ).strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    'bounty': 15000000
+                },
+                headers={
+                    'Authorization': f'Bearer {self.publisher_access_token}'})
+            # assert rv.json == {'message': 'Mission published'}
+            assert rv.status_code == 201
+            # mission_data[accounts_info[i % 3]].append(rv.json)
+
+            check_last_log_entry(
+                n=1, old={}, new={},
+                object_type='Mission', object_id=rv.json['id'],
+                requester_id=self.publihser_user_id, operation=Action.INSERT
+            )
+
+        # Accept some mission
+        for i in range(3, 10):
+            # accept 3 to 10 mission
+            rv = self.client.post(
+                f"/api/missions/{i}/{Status.ACCEPTED.value}",
+                headers={
+                    'Authorization': f'Bearer {self.runner_access_token}'})
+            assert rv.status_code == 204
+
+        # Complete some mission
+        for i in range(3, 7):
+            rv = self.client.post(
+                f"/api/missions/{i}/{Status.COMPLETED.value}",
+                headers={
+                    'Authorization': f'Bearer {self.runner_access_token}'})
+            assert rv.status_code == 204
+
+        # Mark some mission tobe paid
+        for i in range(3, 5):
+            rv = self.client.post(
+                f"/api/missions/{i}/{Status.PAID.value}",
+                headers={
+                    'Authorization': f'Bearer {self.publisher_access_token}'})
+            assert rv.status_code == 204
+
+        # Mark some mission to be done
+        rv = self.client.post(
+            f"/api/missions/{3}/{Status.DONE.value}",
+            headers={
+                'Authorization': f'Bearer {self.runner_access_token}'})
+        assert rv.status_code == 204
+
+        mission_data = {state.value: [] for state in Status}
+        for i in range(1, 11):
+            # get mission status by id
+            rv = self.client.get(
+                f"/api/missions/{i}", headers={
+                    'Authorization': f'Bearer {self.publisher_access_token}'})
+            assert rv.status_code == 200
+            mission_data[rv.json['status']].append(rv.json)
+
+        for status in Status:
+            # get mission by user and state
+            rv = self.client.get(
+                f"/api/missions/{status.value}", headers={
+                    'Authorization': f'Bearer {self.publisher_access_token}'})
+            assert rv.status_code == 200
+
+            rv_data = sorted(rv.json['data'], key=lambda x: x['id'])
+            mission_data[status.value] = sorted(
+                mission_data[status.value],
+                key=lambda x: x['id']
+            )
+            # check if the rv.json['data'] have same data as mission_data
+            # (only check id for publisher because User.last_seen changes)
+            for ret, data in zip(rv_data, mission_data[status.value]):
                 assert ret['publisher']['id'] == data['publisher']['id']
                 for key in ret.keys():
                     if key != 'publisher':
@@ -315,7 +493,9 @@ class MissionTest(BaseTestCase):
             json={
                 'title': self.titles[0],
                 'galaxy': self.galaxies[0],
-                'created': '2023-03-20T03:28:00Z',
+                'created': (
+                    datetime.now()-timedelta(hours=15)
+                ).strftime('%Y-%m-%dT%H:%M:%SZ'),
                 'expired': (
                     datetime.utcnow()+timedelta(days=3)
                 ).strftime('%Y-%m-%dT%H:%M:%SZ'),
@@ -335,7 +515,7 @@ class MissionTest(BaseTestCase):
                     f"/api/missions/{mission_id}/{action.value}",
                     headers={
                         'Authorization': f'Bearer {self.runner_access_token}'})
-                assert rv.status_code == 401
+                assert rv.status_code == 400
 
         # try to accept by publisher (invalid)
         rv = self.client.post(
@@ -382,7 +562,7 @@ class MissionTest(BaseTestCase):
                     f"/api/missions/{mission_id}/{action.value}",
                     headers={
                         'Authorization': f'Bearer {self.runner_access_token}'})
-                assert rv.status_code == 401
+                assert rv.status_code == 400
 
         # try to complete by publisher (invalid)
         rv = self.client.post(
@@ -422,7 +602,7 @@ class MissionTest(BaseTestCase):
                     f"/api/missions/{mission_id}/{action.value}",
                     headers={
                         'Authorization': f'Bearer {self.admin_access_token}'})
-                assert rv.status_code == 401
+                assert rv.status_code == 400
 
         # try to set paid by anyone other than owner (invalid)
         rv = self.client.post(
@@ -467,7 +647,7 @@ class MissionTest(BaseTestCase):
                     f"/api/missions/{mission_id}/{action.value}",
                     headers={
                         'Authorization': f'Bearer {self.admin_access_token}'})
-                assert rv.status_code == 401
+                assert rv.status_code == 400
 
         # try to set done by anyone other than owner (invalid)
         rv = self.client.post(
@@ -511,7 +691,7 @@ class MissionTest(BaseTestCase):
                 f"/api/missions/{mission_id}/{action.value}",
                 headers={
                     'Authorization': f'Bearer {self.admin_access_token}'})
-            assert rv.status_code == 401
+            assert rv.status_code == 400
 
     def test_quit_mission(self):
         # publish a mission

@@ -16,6 +16,7 @@ from api.enums import Status
 from api.models import Account
 from api.models import ChangeLog
 from api.models import Mission
+from api.models import User
 from api.schemas import AccountSchema
 from api.schemas import DateTimePaginationSchema
 from api.schemas import EmptySchema
@@ -34,6 +35,7 @@ update_account_schema = AccountSchema(partial=True)
 @body(mission_schema)
 @response(mission_schema, 201)
 @other_responses({
+    400: 'Mission already published',
     401: 'User cannot edit account info for others',
     403: 'Account is not activated',
     404: 'Account not found',
@@ -59,6 +61,26 @@ def publish(args, id):
         # Make sure the expired time is valid
         if args.get('expired').timestamp() < datetime.utcnow().timestamp():
             abort(400, 'Expired time is invalid')
+    # Check if mission has already published
+    # get list of all mission from database
+    lst = (
+        db.session.query(Mission).filter_by(
+            publisher_id=account.id,
+        ).all()
+    )
+    if type(lst) is Mission:
+        lst = [lst]
+    for mission in lst:
+        if mission.status == Status.PUBLISHED.value:
+            result = [mission.title == args.get('title')]
+            result.append(mission.galaxy == args.get('galaxy'))
+            result.append(
+                mission.created == args.get(
+                    'created',
+                ).replace(tzinfo=None),
+            )
+            if all(result):
+                abort(400, 'Mission already published')
 
     mission = Mission(publisher=account, **args)
     db.session.add(mission)
@@ -119,6 +141,36 @@ def get_byOwner(id):
     return account.missions_published.select()
 
 
+@missions.route('/missions/<string:state>', methods=['GET'])
+@authenticate(token_auth)
+@paginated_response(
+    missions_schema, order_by=Mission.created,
+    order_direction='desc',
+    pagination_schema=DateTimePaginationSchema,
+)
+@other_responses({404: 'Mission not found'})
+def get_byUser_and_State(state):
+    """Retrieve missions published by account
+    """
+    user: User = token_auth.current_user()
+    account_list = (
+        db.session.query(Account).filter_by(
+            owner_id=user.id,
+        ).all()
+    ) or abort(
+        404,
+        'User has no account registered',
+    )
+
+    lst = [
+        db.session.query(Mission).filter_by(
+            publisher_id=acc.id, state=state,
+        ).all() for acc in account_list
+    ]
+
+    return lst
+
+
 @missions.route('/missions/<int:id>/<string:action>', methods=['POST'])
 @authenticate(token_auth)
 @response(
@@ -126,7 +178,8 @@ def get_byOwner(id):
     description='Mission status updated successfully',
 )
 @other_responses({
-    401: 'Operation not allowed',
+    400: 'Operation not allowed',
+    401: 'Operation is not for you to complete',
     403: 'Mission expired',
     404: 'Mission not found',
 })
@@ -157,10 +210,10 @@ def next_step(id, action):
     # Gatekeeper
     if Status.isTerminal(mission.status):
         # Mission in terminal state cannot be updated by this EP.
-        abort(401)
+        abort(400)
 
     if action not in mission.next_step:
-        abort(401)
+        abort(400)
 
     if action == Status.PUBLISHED.value:
         # This handles the excption case when runner cannot complete mission
