@@ -1,3 +1,4 @@
+import requests
 from apifairy import authenticate
 from apifairy import body
 from apifairy import response
@@ -30,6 +31,9 @@ update_account_schema = AccountSchema(partial=True)
 @authenticate(token_auth)
 @body(account_schema)
 @response(account_schema, 201)
+@other_responses({
+    404: 'Cannot find valid account',
+})
 def new(args):
     """Register a new account
 
@@ -38,6 +42,24 @@ def new(args):
     """
     # Issuer
     user = token_auth.current_user()
+
+    # Gatekeeper
+    url = 'https://esi.evetech.net/latest/universe/' +\
+        'ids/?datasource=tranquility&language=en'
+
+    headers = {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+    }
+
+    response = requests.post(url, json=[args.get('name')], headers=headers)
+    if response.status_code == 200:
+        id_data = response.json()
+        if not id_data:
+            abort(404)
+        character_id = id_data['characters'][0]['id']
+        args['esi_id'] = character_id
 
     # Setup
     account = Account(owner=user, **args)

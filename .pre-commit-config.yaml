@@ -2,7 +2,7 @@ fail_fast: true
 exclude: ^(migrations|test).*$
 repos:
     - repo: https://github.com/commitizen-tools/commitizen.git
-      rev: v2.42.1
+      rev: 3.1.1
       hooks:
           - id: commitizen
           - id: commitizen-branch
@@ -35,7 +35,7 @@ repos:
           - id: reorder-python-imports
             args: [--py37-plus]
     - repo: https://github.com/asottile/pyupgrade.git
-      rev: v3.3.1
+      rev: v3.3.2
       hooks:
           - id: pyupgrade
             args: [--py37-plus]
@@ -48,6 +48,9 @@ repos:
       rev: v1.2.0
       hooks:
           - id: mypy
+            # verbose: true
+            # args: [--no-strict-optional, --ignore-missing-imports]
+            additional_dependencies: ['types-requests']
     - repo: local
       hooks:
           - id: Run flake8 on project

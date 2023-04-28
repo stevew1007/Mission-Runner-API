@@ -224,6 +224,7 @@ class Account(Updateable, BaseModel):
     created: so.Mapped[datetime] = so.mapped_column(default=datetime.utcnow)
     activated: so.Mapped[bool] = so.mapped_column(default=False)
     lp_point: so.Mapped[int] = so.mapped_column(default=0)
+    esi_id: so.Mapped[int] = so.mapped_column(nullable=False)
 
     # Links
     # Back_populates link for account owner

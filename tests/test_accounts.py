@@ -1,6 +1,8 @@
 from tests.base_test_case import BaseTestCase, TestConfigWithAuth
 from api.app import db
 from api.models import ChangeLog
+from tests.util import check_last_log_entry
+from api.enums import Action
 
 
 class AccountTest(BaseTestCase):
@@ -49,6 +51,11 @@ class AccountTest(BaseTestCase):
         assert last_log.old_value == ""
         assert last_log.new_value == f"Add Account ID: {account_id}"
 
+        check_last_log_entry(
+            n=1, old={}, new={},
+            object_type='Account', object_id=account_id,
+            requester_id=self.user_id, operation=Action.INSERT)
+
         # Check if name should be unique
         rv = self.client.post('/api/accounts', json={
             'name': 'nextorian',
@@ -57,9 +64,10 @@ class AccountTest(BaseTestCase):
         assert rv.status_code == 400
 
     def test_get_account(self):
+        name = 'nextorioan'
         # Add account
         rv = self.client.post('/api/accounts', json={
-            'name': 'nextorian2',
+            'name': name,
             "lp_point": 100
         }, headers={'Authorization': f'Bearer {self.user_access_token}'})
         assert rv.status_code == 201
@@ -70,15 +78,15 @@ class AccountTest(BaseTestCase):
             f'/api/accounts/{account_id}',
             headers={'Authorization': f'Bearer {self.user_access_token}'})
         assert rv.status_code == 200
-        assert rv.json['name'] == 'nextorian2'
+        assert rv.json['name'] == name
         assert rv.json['lp_point'] == 100
 
         # Get by name
         rv = self.client.get(
-            '/api/accounts/nextorian2',
+            f'/api/accounts/{name}',
             headers={'Authorization': f'Bearer {self.user_access_token}'})
         assert rv.status_code == 200
-        assert rv.json['name'] == 'nextorian2'
+        assert rv.json['name'] == name
         assert rv.json['lp_point'] == 100
 
     def test_get_account_with_wrong_user(self):
@@ -92,8 +100,9 @@ class AccountTest(BaseTestCase):
         assert rv.status_code == 201
 
         # Add account
+        name = 'nextorioan'
         rv = self.client.post('/api/accounts', json={
-            'name': 'nextorian2',
+            'name': name,
             "lp_point": 100
         }, headers={'Authorization': f'Bearer {self.user_access_token}'})
         assert rv.status_code == 201
@@ -112,11 +121,12 @@ class AccountTest(BaseTestCase):
 
         # Get by name
         rv = self.client.get(
-            '/api/accounts/nextorian2',
+            f'/api/accounts/{name}',
             headers={'Authorization': f'Bearer {another_access_token}'})
         assert rv.status_code == 401
 
     def test_get_account_404(self):
+
         # Get by ID
         rv = self.client.get(
             '/api/accounts/100',
@@ -130,9 +140,10 @@ class AccountTest(BaseTestCase):
         assert rv.status_code == 404
 
     def test_edit_account_no_changes(self):
+        name = 'nextorioan'
         # Add account
         rv = self.client.post('/api/accounts', json={
-            'name': 'nextorian2',
+            'name': name,
             "lp_point": 100
         }, headers={'Authorization': f'Bearer {self.user_access_token}'})
         assert rv.status_code == 201
@@ -141,7 +152,7 @@ class AccountTest(BaseTestCase):
             ChangeLog.select().order_by(ChangeLog.id.desc()))
 
         rv = self.client.put(f'/api/accounts/{account_id}', json={
-            'name': 'nextorian2',
+            'name': name,
             "lp_point": 100
         }, headers={'Authorization': f'Bearer {self.user_access_token}'})
 
@@ -154,9 +165,10 @@ class AccountTest(BaseTestCase):
         assert log1.id == log2.id
 
     def test_edit_account(self):
+        name = 'nextorioan'
         # Add account
         rv = self.client.post('/api/accounts', json={
-            'name': 'nextorian2',
+            'name': name,
             "lp_point": 100
         }, headers={'Authorization': f'Bearer {self.user_access_token}'})
         assert rv.status_code == 201
@@ -176,7 +188,7 @@ class AccountTest(BaseTestCase):
         assert last_log.object_id == account_id
         assert last_log.requester_id == self.user_id
         assert last_log.attribute_name == 'name'
-        assert last_log.old_value == 'nextorian2'
+        assert last_log.old_value == name
         assert last_log.new_value == 'noraus'
 
         # Change LP Point
@@ -197,9 +209,10 @@ class AccountTest(BaseTestCase):
         assert last_log.new_value == '20000'
 
     def test_edit_account_by_other(self):
+        name = 'nextorioan'
         # Add account
         rv = self.client.post('/api/accounts', json={
-            'name': 'nextorian2',
+            'name': name,
             "lp_point": 100
         }, headers={'Authorization': f'Bearer {self.user_access_token}'})
         assert rv.status_code == 201
@@ -232,8 +245,9 @@ class AccountTest(BaseTestCase):
         assert rv.status_code == 404
 
         # Add account
+        name = 'nextorioan'
         rv = self.client.post('/api/accounts', json={
-            'name': 'nextorian2',
+            'name': name,
             "lp_point": 100
         }, headers={'Authorization': f'Bearer {self.user_access_token}'})
         assert rv.status_code == 201

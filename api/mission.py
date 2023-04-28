@@ -16,7 +16,6 @@ from api.enums import Status
 from api.models import Account
 from api.models import ChangeLog
 from api.models import Mission
-from api.models import User
 from api.schemas import AccountSchema
 from api.schemas import DateTimePaginationSchema
 from api.schemas import EmptySchema
@@ -152,7 +151,7 @@ def get_byOwner(id):
 def get_byUser_and_State(state):
     """Retrieve all the mission published by in specified state
     """
-    user: User = token_auth.current_user()
+    user = token_auth.current_user()
     # account_list = (
     #     db.session.query(Account).filter_by(
     #         owner_id=user.id,

@@ -29,9 +29,9 @@ class AdminTest(BaseTestCase):
         rv = self.client.post('/api/tokens', auth=('publisher', 'publish'))
         assert rv.status_code == 200
         self.publisher_access_token = rv.json['access_token']
-
+        name = 'Qxlt4 14'
         rv = self.client.post('/api/accounts', json={
-            'name': 'nextorian2',
+            'name': name,
             "lp_point": 100
         }, headers={'Authorization': f'Bearer {self.publisher_access_token}'})
         assert rv.status_code == 201

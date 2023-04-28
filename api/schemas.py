@@ -226,6 +226,10 @@ class AccountSchema(ma.SQLAlchemySchema):
             track the lp point they have on \
                 each account.',
     )
+    esi_id = ma.auto_field(
+        dump_only=True,
+        description='ESI Character ID, used for generate ingame link.',
+    )
     owner = ma.Nested(
         UserSchema, dump_only=True,
         description='User who is responsible for this account.',

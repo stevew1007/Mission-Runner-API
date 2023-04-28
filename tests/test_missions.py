@@ -37,7 +37,7 @@ class MissionTest(BaseTestCase):
 
         # Register an account
         rv = self.client.post('/api/accounts', json={
-            'name': 'nextorian2',
+            'name': 'Isakko II',
             "lp_point": 100
         }, headers={'Authorization': f'Bearer {self.publisher_access_token}'})
         assert rv.status_code == 201
@@ -80,7 +80,7 @@ class MissionTest(BaseTestCase):
     def test_publish_mission_unactiviated_account(self):
         # Register an account
         rv = self.client.post('/api/accounts', json={
-            'name': 'nextorian3',
+            'name': 'Qxlt4 14',
             "lp_point": 100
         }, headers={'Authorization': f'Bearer {self.publisher_access_token}'})
         assert rv.status_code == 201
@@ -103,7 +103,7 @@ class MissionTest(BaseTestCase):
     def test_publish_mission_account_own_by_others(self):
         # Register an account
         rv = self.client.post('/api/accounts', json={
-            'name': 'nextorian3',
+            'name': 'isakko I',
             "lp_point": 100
         }, headers={'Authorization': f'Bearer {self.admin_access_token}'})
         assert rv.status_code == 201
