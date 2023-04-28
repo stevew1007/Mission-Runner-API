@@ -113,7 +113,7 @@ def get(id):
     return db.session.get(Mission, id) or abort(404)
 
 
-@missions.route('/missions/<galaxy>', methods=['GET'])
+@missions.route('/missions/galaxy/<galaxy>', methods=['GET'])
 @authenticate(token_auth)
 @paginated_response(
     missions_schema, order_by=Mission.created,
@@ -141,7 +141,7 @@ def get_byOwner(id):
     return account.missions_published.select()
 
 
-@missions.route('/missions/<string:state>', methods=['GET'])
+@missions.route('/missions/state/<string:state>', methods=['GET'])
 @authenticate(token_auth)
 @paginated_response(
     missions_schema, order_by=Mission.created,
@@ -150,25 +150,23 @@ def get_byOwner(id):
 )
 @other_responses({404: 'Mission not found'})
 def get_byUser_and_State(state):
-    """Retrieve missions published by account
+    """Retrieve all the mission published by in specified state
     """
     user: User = token_auth.current_user()
-    account_list = (
-        db.session.query(Account).filter_by(
-            owner_id=user.id,
-        ).all()
-    ) or abort(
-        404,
-        'User has no account registered',
-    )
-
-    lst = [
-        db.session.query(Mission).filter_by(
-            publisher_id=acc.id, state=state,
-        ).all() for acc in account_list
-    ]
-
-    return lst
+    # account_list = (
+    #     db.session.query(Account).filter_by(
+    #         owner_id=user.id,
+    #     ).all()
+    # ) or abort(
+    #     404,
+    #     'User has no account registered',
+    # )
+    return Mission.select().join(
+        Account,
+        Account.id == Mission.publisher_id,
+    ).filter(
+        Account.owner_id == user.id,
+    ).filter(Mission.status == state)
 
 
 @missions.route('/missions/<int:id>/<string:action>', methods=['POST'])

@@ -256,7 +256,7 @@ class MissionTest(BaseTestCase):
         # get missions by galaxy
         for galaxy in self.galaxies:
             rv = self.client.get(
-                f"/api/missions/{galaxy}",
+                f"/api/missions/galaxy/{galaxy}",
                 headers={
                     'Authorization': f'Bearer {self.publisher_access_token}'})
             assert rv.status_code == 200
@@ -469,7 +469,7 @@ class MissionTest(BaseTestCase):
         for status in Status:
             # get mission by user and state
             rv = self.client.get(
-                f"/api/missions/{status.value}", headers={
+                f"/api/missions/state/{status.value}", headers={
                     'Authorization': f'Bearer {self.publisher_access_token}'})
             assert rv.status_code == 200
 
@@ -478,6 +478,7 @@ class MissionTest(BaseTestCase):
                 mission_data[status.value],
                 key=lambda x: x['id']
             )
+            assert len(rv_data) == len(mission_data[status.value])
             # check if the rv.json['data'] have same data as mission_data
             # (only check id for publisher because User.last_seen changes)
             for ret, data in zip(rv_data, mission_data[status.value]):
