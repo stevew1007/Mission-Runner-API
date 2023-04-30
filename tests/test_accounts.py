@@ -271,7 +271,7 @@ class AccountTest(BaseTestCase):
 
         # Add account to admin
         rv = self.client.post('/api/accounts', json={
-            'name': 'nextorian3',
+            'name': 'GTS007',
             "lp_point": 100
         }, headers={'Authorization': f'Bearer {admin_token}'})
         assert rv.status_code == 201
@@ -306,9 +306,9 @@ class AccountTest(BaseTestCase):
 
         user1_account_id = list()
 
-        for i in range(10):
+        for i in range(9):
             rv = self.client.post('/api/accounts', json={
-                'name': f'nextorian{i}',
+                'name': f'GTS01{i}',
                 "lp_point": 100
             }, headers={'Authorization': f'Bearer {self.user_access_token}'})
             assert rv.status_code == 201
@@ -316,7 +316,7 @@ class AccountTest(BaseTestCase):
 
         user2_account_id = list()
 
-        for i in range(5):
+        for i in range(1, 4):
             rv = self.client.post('/api/accounts', json={
                 'name': f'{i}0seconds',
                 "lp_point": 100

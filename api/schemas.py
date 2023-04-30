@@ -14,6 +14,7 @@ from api.enums import Status
 from api.models import Account
 from api.models import Mission
 from api.models import User
+# from .schemas import AccountSchema
 
 paginated_schema_cache: Dict[ma.Schema, ma.Schema] = {}
 
@@ -70,6 +71,24 @@ def PaginatedCollection(schema, pagination_schema=StringPaginationSchema):
     return PaginatedSchema
 
 
+class ExtAccountSchema(ma.SQLAlchemySchema):
+    class Meta:
+        model = Account
+        ordered = True
+        description = 'Shema to show only necessary information to others'
+    id = ma.auto_field(dump_only=True)
+    name = ma.auto_field(
+        dump_only=True,
+        description='Character name \
+            which publish the mission. \
+            Use this name to track the owner of the mission.',
+    )
+    esi_id = ma.auto_field(
+        dump_only=True,
+        description='ESI Character ID, used for generate ingame link.',
+    )
+
+
 class UserSchema(ma.SQLAlchemySchema):
     class Meta:
         model = User
@@ -102,11 +121,17 @@ class UserSchema(ma.SQLAlchemySchema):
     default_account_id = ma.String(
         dump_only=True, description='Default account for user',
     )
+    default_account = ma.Nested(
+        ExtAccountSchema,
+        dump_only=True, description='Default account for user',
+    )
     birthday = ma.auto_field(
-        dump_only=True, description='Date when user registered.',
+        dump_only=True,
+        description='Date when user registered.',
     )
     last_seen = ma.auto_field(
-        dump_only=True, description="Timestamp for user's last activity.",
+        dump_only=True,
+        description="Timestamp for user's last activity.",
     )
 
     @validates('username')

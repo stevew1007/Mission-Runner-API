@@ -149,7 +149,7 @@ def get_byOwner(id):
 )
 @other_responses({404: 'Mission not found'})
 def get_byUser_and_State(state):
-    """Retrieve all the mission published by in specified state
+    """Retrieve all the mission published by user that is in specified state
     """
     user = token_auth.current_user()
     # account_list = (
@@ -166,6 +166,36 @@ def get_byUser_and_State(state):
     ).filter(
         Account.owner_id == user.id,
     ).filter(Mission.status == state)
+
+
+@missions.route('/missions/runned', methods=['GET'])
+@authenticate(token_auth)
+@paginated_response(
+    missions_schema, order_by=Mission.created,
+    order_direction='desc',
+    pagination_schema=DateTimePaginationSchema,
+)
+# @other_responses({404: 'Mission not found'})
+def get_runned():
+    """Retrieve all the mission runned by user
+    """
+    user = token_auth.current_user()
+    return Mission.select().filter_by(runner_id=user.id)
+
+
+@missions.route('/missions/published', methods=['GET'])
+@authenticate(token_auth)
+@paginated_response(
+    missions_schema, order_by=Mission.created,
+    order_direction='desc',
+    pagination_schema=DateTimePaginationSchema,
+)
+# @other_responses({404: 'Mission not found'})
+def get_published():
+    """Retrieve all the mission published
+    """
+    user = token_auth.current_user()
+    return Mission.select().filter_by(publisher_id=user.id)
 
 
 @missions.route('/missions/<int:id>/<string:action>', methods=['POST'])
