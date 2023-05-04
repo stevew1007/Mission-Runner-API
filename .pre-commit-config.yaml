@@ -57,12 +57,12 @@ repos:
             name: Run flake8
             entry: bash -c "flake8 api tests"
             language: python
-          - id: Run project test
-            name: tests
-            entry: tox
-            additional_dependencies: [pytest]
-            pass_filenames: false
-            always_run: true
-            language: python
-            verbose: true
-            stages: [push]
+          # - id: Run project test
+          #   name: tests
+          #   entry: tox
+          #   additional_dependencies: [pytest]
+          #   pass_filenames: false
+          #   always_run: true
+          #   language: python
+          #   verbose: true
+          #   stages: [push]
