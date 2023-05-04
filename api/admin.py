@@ -192,13 +192,19 @@ def modifyUserInfo(data, id):
 
     # Setup
     user = db.session.get(User, id) or abort(404)
-    prev = {key: getattr(user, key) for key in dict(data).keys()}
+    prev = {
+        key: getattr(user, key)
+        for key in dict(data).keys()
+        if key != 'password'
+    }
+    if 'password' in data:
+        prev['password_hash'] = user.password_hash
 
     # Modification
     user.update(data)
 
     # Track changes
-    for key in dict(data).keys():
+    for key in prev.keys():
         if getattr(user, key) is not None:
             change = ChangeLog(
                 object_type=type(user).__name__,
@@ -218,11 +224,11 @@ def modifyUserInfo(data, id):
 
 @admin.route('/accounts/<int:id>', methods=['PUT'])
 @authenticate(token_auth, role=[Role.ADMIN.value])
-@body(update_user_schema)
+@body(account_schema)
 @response(user_schema)
 @other_responses({404: 'User not found'})
 def modifyAccountInfo(data, id):
-    """Modify information for the user
+    """Modify information for the account
     Allow admin to modify user table of the database.
     **Use this power wisely**.
 
@@ -234,7 +240,10 @@ def modifyAccountInfo(data, id):
 
     # Setup
     account = db.session.get(Account, id) or abort(404)
-    prev = {key: getattr(Account, key) for key in dict(data).keys()}
+    prev = {
+        key: getattr(Account, key)
+        for key in dict(data).keys()
+    }
 
     # Modification
     account.update(data)

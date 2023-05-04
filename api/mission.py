@@ -195,7 +195,12 @@ def get_published():
     """Retrieve all the mission published
     """
     user = token_auth.current_user()
-    return Mission.select().filter_by(publisher_id=user.id)
+    return Mission.select().join(
+        Account,
+        Account.id == Mission.publisher_id,
+    ).filter(
+        Account.owner_id == user.id,
+    )
 
 
 @missions.route('/missions/<int:id>/<string:action>', methods=['POST'])
