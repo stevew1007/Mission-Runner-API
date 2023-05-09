@@ -71,6 +71,16 @@ def publish(args, id):
     db.session.commit()
     return mission
 
+//@missions.route('/missions, methods=['GET'])
+//@authenticate(token_auth)
+//@response(mission_counts_schema)
+//@other_responses({404: 'Missions not found'})
+//def getmission_counts():
+//    """Retrieve mission counts
+//    """
+//                
+//    count=db.session.query(Mission).filter(status = 'published').count()
+//    return count or abort(404)
 
 @missions.route('/missions/<int:id>', methods=['GET'])
 @authenticate(token_auth)
