@@ -1,14 +1,23 @@
-from datetime import datetime, timedelta
-from hashlib import md5
 import secrets
+from datetime import datetime
+from datetime import timedelta
+from hashlib import md5
 from time import time
-from flask import current_app, url_for
+
 import jwt
 import sqlalchemy as sa
+from flask import current_app
+from flask import url_for
 from sqlalchemy import orm as so
-from werkzeug.security import generate_password_hash, check_password_hash
-from api.enums import Role, Status
+from sqlalchemy.ext.declarative import DeclarativeMeta
+from werkzeug.security import check_password_hash
+from werkzeug.security import generate_password_hash
+
 from api.app import db
+from api.enums import Role
+from api.enums import Status
+
+BaseModel: DeclarativeMeta = db.Model
 
 
 class Updateable:
@@ -16,15 +25,8 @@ class Updateable:
         for attr, value in data.items():
             setattr(self, attr, value)
 
-# followers = sa.Table(
-#     'followers',
-#     db.Model.metadata,
-#     sa.Column('follower_id', sa.ForeignKey('users.id'), primary_key=True),
-#     sa.Column('followed_id', sa.ForeignKey('users.id'), primary_key=True)
-# )
 
-
-class ChangeLog(db.Model):
+class ChangeLog(BaseModel):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     object_type: so.Mapped[str] = so.mapped_column(sa.String(64))
     object_id: so.Mapped[int] = so.mapped_column(index=True)
@@ -36,7 +38,7 @@ class ChangeLog(db.Model):
     new_value: so.Mapped[str] = so.mapped_column(sa.String(255))
 
 
-class Token(db.Model):
+class Token(BaseModel):
     __tablename__ = 'tokens'
 
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
@@ -45,7 +47,8 @@ class Token(db.Model):
     refresh_token: so.Mapped[str] = so.mapped_column(sa.String(64), index=True)
     refresh_expiration: so.Mapped[datetime]
     user_id: so.Mapped[int] = so.mapped_column(
-        sa.ForeignKey('users.id'), index=True)
+        sa.ForeignKey('users.id'), index=True,
+    )
 
     user: so.Mapped['User'] = so.relationship(back_populates='tokens')
 
@@ -68,38 +71,51 @@ class Token(db.Model):
     def clean():
         """Remove any tokens that have been expired for more than a day."""
         yesterday = datetime.utcnow() - timedelta(days=1)
-        db.session.execute(Token.delete().where(
-            Token.refresh_expiration < yesterday))
+        db.session.execute(
+            Token.delete().where(
+                Token.refresh_expiration < yesterday,
+            ),
+        )
 
 
-class User(Updateable, db.Model):
+class User(Updateable, BaseModel):
     __tablename__ = 'users'
 
     # Basic Info
     id: so.Mapped[int] = so.mapped_column(
-        primary_key=True)
+        primary_key=True,
+    )
     username: so.Mapped[str] = so.mapped_column(
-        sa.String(64), index=True, unique=True)
+        sa.String(64), index=True, unique=True,
+    )
     email: so.Mapped[str] = so.mapped_column(
-        sa.String(120), index=True, unique=True)
+        sa.String(120), index=True, unique=True,
+    )
     im_number: so.Mapped[str] = so.mapped_column(
-        sa.String(20), index=True, unique=True)
+        sa.String(20), index=True, unique=True,
+    )
     password_hash: so.Mapped[str] = so.mapped_column(sa.String(128))
     role: so.Mapped[str] = so.mapped_column(
-        sa.String(20), nullable=False, default=Role.MISSION_PUBLISHER.value)
+        sa.String(20), nullable=False, default=Role.MISSION_PUBLISHER.value,
+    )
     birthday: so.Mapped[datetime] = so.mapped_column(default=datetime.utcnow)
     last_seen: so.Mapped[datetime] = so.mapped_column(default=datetime.utcnow)
 
     # Links
+    # Back_populates link for default payment
+    default_account_id: so.Mapped[int] = so.mapped_column(nullable=True)
     tokens: so.WriteOnlyMapped['Token'] = so.relationship(
-        back_populates='user')
+        back_populates='user',
+    )
     accounts: so.WriteOnlyMapped['Account'] = so.relationship(
-        back_populates='owner')
+        back_populates='owner', foreign_keys='Account.owner_id',
+    )
     missions_run: so.WriteOnlyMapped['Mission'] = so.relationship(
-        back_populates='runner')
+        back_populates='runner',
+    )
 
     def __repr__(self):  # pragma: no cover
-        return '<User {}>'.format(self.username)
+        return f'<User {self.username}>'
 
     @property
     def url(self):
@@ -118,6 +134,13 @@ class User(Updateable, db.Model):
     def password(self, password):
         self.password_hash = generate_password_hash(password)
 
+    @property
+    def default_account(self):
+        if self.default_account_id is not None:
+            return db.session.get(Account, self.default_account_id)
+        else:
+            return None
+
     def verify_password(self, password):
         return check_password_hash(self.password_hash, password)
 
@@ -134,8 +157,11 @@ class User(Updateable, db.Model):
 
     @staticmethod
     def verify_access_token(access_token, refresh_token=None):
-        token = db.session.scalar(Token.select().filter_by(
-            access_token=access_token))
+        token = db.session.scalar(
+            Token.select().filter_by(
+                access_token=access_token,
+            ),
+        )
         if token:
             if token.access_expiration > datetime.utcnow():
                 token.user.ping()
@@ -144,8 +170,11 @@ class User(Updateable, db.Model):
 
     @staticmethod
     def verify_refresh_token(refresh_token, access_token):
-        token = db.session.scalar(Token.select().filter_by(
-            refresh_token=refresh_token, access_token=access_token))
+        token = db.session.scalar(
+            Token.select().filter_by(
+                refresh_token=refresh_token, access_token=access_token,
+            ),
+        )
         if token:
             if token.refresh_expiration > datetime.utcnow():
                 return token
@@ -165,43 +194,50 @@ class User(Updateable, db.Model):
                 'reset_email': self.email,
             },
             current_app.config['SECRET_KEY'],
-            algorithm='HS256'
+            algorithm='HS256',
         )
 
     @staticmethod
     def verify_reset_token(reset_token):
         try:
-            data = jwt.decode(reset_token, current_app.config['SECRET_KEY'],
-                              algorithms=['HS256'])
+            data = jwt.decode(
+                reset_token, current_app.config['SECRET_KEY'],
+                algorithms=['HS256'],
+            )
         except jwt.PyJWTError:
             return
-        return db.session.scalar(User.select().filter_by(
-            email=data['reset_email']))
+        return db.session.scalar(
+            User.select().filter_by(
+                email=data['reset_email'],
+            ),
+        )
 
 
-class Account(Updateable, db.Model):
+class Account(Updateable, BaseModel):
     __tablename__ = 'accounts'
 
     # Basic Info
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     name: so.Mapped[str] = so.mapped_column(
-        sa.String(50), nullable=False, unique=True)
+        sa.String(50), nullable=False, unique=True,
+    )
     created: so.Mapped[datetime] = so.mapped_column(default=datetime.utcnow)
     activated: so.Mapped[bool] = so.mapped_column(default=False)
     lp_point: so.Mapped[int] = so.mapped_column(default=0)
+    esi_id: so.Mapped[int] = so.mapped_column(nullable=False)
 
     # Links
     # Back_populates link for account owner
     owner_id: so.Mapped[int] = so.mapped_column(
-        sa.ForeignKey(User.id), index=True)
+        sa.ForeignKey(User.id), index=True,
+    )
     owner: so.Mapped['User'] = so.relationship(back_populates='accounts')
-    # missions_published: so.Mapped['Mission'] = so.relationship(
-    #   back_populates='publisher')
     missions_published: so.WriteOnlyMapped['Mission'] = so.relationship(
-        back_populates='publisher')
+        back_populates='publisher',
+    )
 
     def __repr__(self):  # pragma: no cover
-        return '<Post {}>'.format(self.text)
+        return f'<Post {self.text}>'
 
     @property
     def url(self):
@@ -217,7 +253,7 @@ class Account(Updateable, db.Model):
         return bool(self.activated)
 
 
-class Mission(Updateable, db.Model):
+class Mission(Updateable, BaseModel):
     __tablename__ = 'mission'
 
     # Basic Info
@@ -230,29 +266,29 @@ class Mission(Updateable, db.Model):
     created: so.Mapped[datetime]
     expired: so.Mapped[datetime]
     bounty: so.Mapped[int] = so.mapped_column(nullable=False)
+    remark: so.Mapped[str] = so.mapped_column(sa.String(), nullable=True)
 
     # Status Related
     status: so.Mapped[str] = so.mapped_column(
-        sa.String(20), nullable=False, default=Status.PUBLISHED.value)
+        sa.String(20), nullable=False, default=Status.PUBLISHED.value,
+    )
 
     publisher_id: so.Mapped[int] = so.mapped_column(
-        sa.ForeignKey(Account.id), index=True)
+        sa.ForeignKey(Account.id), index=True,
+    )
     publisher: so.Mapped['Account'] = so.relationship(
-        back_populates='missions_published')
+        back_populates='missions_published',
+    )
 
     runner_id: so.Mapped[int] = so.mapped_column(
-        sa.ForeignKey(User.id), index=True, nullable=True)
+        sa.ForeignKey(User.id), index=True, nullable=True,
+    )
     runner: so.Mapped['User'] = so.relationship(back_populates='missions_run')
-
-    # @so.validates('status')
-    # def validate_status(self, key, value):
-    #     allowed_status = ['published', 'accepted', 'completed', "archived"]
-    #     if value not in allowed_status:
-    #         raise ValueError(
-    #             f"Invalid status: {value}. \
-    #                 Allowed stat are {', '.join(allowed_status)}.")
-    #     return value
 
     @property
     def url(self):
         return url_for('missions.get', id=self.id)
+
+    @property
+    def next_step(self):
+        return Status.next(self.status)

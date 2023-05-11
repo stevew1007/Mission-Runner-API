@@ -1,6 +1,8 @@
 from flask import current_app
-from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth
-from werkzeug.exceptions import Unauthorized, Forbidden
+from flask_httpauth import HTTPBasicAuth
+from flask_httpauth import HTTPTokenAuth
+from werkzeug.exceptions import Forbidden
+from werkzeug.exceptions import Unauthorized
 
 from api.app import db
 from api.models import User

@@ -10,7 +10,8 @@ class MissionModelTests(BaseTestCase):
         super().setUp()
         self.user = db.session.scalar(
             User.select().order_by(User.id.desc()))
-        self.account = Account(name='nextorian', lp_point=100, owner=self.user)
+        self.account = Account(
+            name='nextorian', lp_point=100, owner=self.user, esi_id=343563816)
         db.session.add(self.account)
 
     def test_create_mission(self):

@@ -1,13 +1,23 @@
-from flask import Blueprint, request, abort, current_app, url_for
+from apifairy import authenticate
+from apifairy import body
+from apifairy import other_responses
+from apifairy import response
+from flask import abort
+from flask import Blueprint
+from flask import current_app
+from flask import request
+from flask import url_for
 from werkzeug.http import dump_cookie
-from apifairy import authenticate, body, response, other_responses
 
 from api.app import db
 from api.auth import basic_auth
 from api.email import send_email
-from api.models import User, Token
-from api.schemas import TokenSchema, PasswordResetRequestSchema, \
-    PasswordResetSchema, EmptySchema
+from api.models import Token
+from api.models import User
+from api.schemas import EmptySchema
+from api.schemas import PasswordResetRequestSchema
+from api.schemas import PasswordResetSchema
+from api.schemas import TokenSchema
 
 tokens = Blueprint('tokens', __name__)
 token_schema = TokenSchema()
@@ -22,7 +32,8 @@ def token_response(token):
         headers['Set-Cookie'] = dump_cookie(
             'refresh_token', token.refresh_token,
             path=url_for('tokens.new'), secure=not current_app.debug,
-            httponly=True, samesite=samesite)
+            httponly=True, samesite=samesite,
+        )
     return {
         'access_token': token.access_token,
         'refresh_token': token.refresh_token
@@ -62,8 +73,11 @@ def refresh(args):
     the body of the request.
     """
     access_token = args['access_token']
-    refresh_token = args.get('refresh_token', request.cookies.get(
-        'refresh_token'))
+    refresh_token = args.get(
+        'refresh_token', request.cookies.get(
+            'refresh_token',
+        ),
+    )
     if not access_token or not refresh_token:
         abort(401)
     token = User.verify_refresh_token(refresh_token, access_token)
@@ -82,8 +96,11 @@ def refresh(args):
 def revoke():
     """Revoke an access token"""
     access_token = request.headers['Authorization'].split()[1]
-    token = db.session.scalar(Token.select().filter_by(
-        access_token=access_token))
+    token = db.session.scalar(
+        Token.select().filter_by(
+            access_token=access_token,
+        ),
+    )
     if not token:  # pragma: no cover
         abort(401)
     token.expire()
@@ -93,8 +110,10 @@ def revoke():
 
 @tokens.route('/tokens/reset', methods=['POST'])
 @body(PasswordResetRequestSchema)
-@response(EmptySchema, status_code=204,
-          description='Password reset email sent')
+@response(
+    EmptySchema, status_code=204,
+    description='Password reset email sent',
+)
 def reset(args):
     """Request a password reset token"""
     user = db.session.scalar(User.select().filter_by(email=args['email']))
@@ -102,15 +121,19 @@ def reset(args):
         reset_token = user.generate_reset_token()
         reset_url = current_app.config['PASSWORD_RESET_URL'] + \
             '?token=' + reset_token
-        send_email(args['email'], 'Reset Your Password', 'reset',
-                   token=reset_token, url=reset_url)
+        send_email(
+            args['email'], 'Reset Your Password', 'reset',
+            token=reset_token, url=reset_url,
+        )
     return {}
 
 
 @tokens.route('/tokens/reset', methods=['PUT'])
 @body(PasswordResetSchema)
-@response(EmptySchema, status_code=204,
-          description='Password reset successful')
+@response(
+    EmptySchema, status_code=204,
+    description='Password reset successful',
+)
 @other_responses({400: 'Invalid reset token'})
 def password_reset(args):
     """Reset a user password"""

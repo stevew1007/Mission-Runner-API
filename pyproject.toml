@@ -1,0 +1,5 @@
+[tool.semantic_release]
+version_variable = [
+    'conf.py:version',
+]
+version_source = 'tag_only'

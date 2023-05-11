@@ -1,0 +1,68 @@
+fail_fast: true
+exclude: ^(migrations|test).*$
+repos:
+    - repo: https://github.com/commitizen-tools/commitizen.git
+      rev: 3.1.1
+      hooks:
+          - id: commitizen
+          - id: commitizen-branch
+            stages: [push]
+    - repo: https://github.com/jazzband/pip-tools
+      rev: 6.13.0
+      hooks:
+          - id: pip-compile
+            args: [--no-emit-index-url, -v, --no-header]
+    - repo: https://github.com/pre-commit/pre-commit-hooks.git
+      rev: v4.4.0
+      hooks:
+          - id: trailing-whitespace
+            verbose: true
+          - id: end-of-file-fixer
+          - id: check-docstring-first
+          - id: check-json
+          - id: check-added-large-files
+          - id: check-yaml
+          - id: debug-statements
+          - id: double-quote-string-fixer
+          - id: requirements-txt-fixer
+    - repo: https://github.com/pre-commit/mirrors-autopep8.git
+      rev: v2.0.2
+      hooks:
+          - id: autopep8
+    - repo: https://github.com/asottile/reorder_python_imports.git
+      rev: v3.9.0
+      hooks:
+          - id: reorder-python-imports
+            args: [--py37-plus]
+    - repo: https://github.com/asottile/pyupgrade.git
+      rev: v3.3.2
+      hooks:
+          - id: pyupgrade
+            args: [--py37-plus]
+    - repo: https://github.com/asottile/add-trailing-comma.git
+      rev: v2.4.0
+      hooks:
+          - id: add-trailing-comma
+            args: [--py36-plus]
+    - repo: https://github.com/pre-commit/mirrors-mypy.git
+      rev: v1.2.0
+      hooks:
+          - id: mypy
+            # verbose: true
+            # args: [--no-strict-optional, --ignore-missing-imports]
+            additional_dependencies: ['types-requests']
+    - repo: local
+      hooks:
+          - id: Run flake8 on project
+            name: Run flake8
+            entry: bash -c "flake8 api tests"
+            language: python
+          # - id: Run project test
+          #   name: tests
+          #   entry: tox
+          #   additional_dependencies: [pytest]
+          #   pass_filenames: false
+          #   always_run: true
+          #   language: python
+          #   verbose: true
+          #   stages: [push]

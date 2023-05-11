@@ -1,15 +1,23 @@
+from apifairy import authenticate
+from apifairy import body
+from apifairy import response
 from apifairy.decorators import other_responses
-from flask import Blueprint, abort
-from apifairy import authenticate, body, response
+from flask import abort
+from flask import Blueprint
 
 from api import db
-from api.models import User, Account, ChangeLog
-from api.schemas import AccountSchema, UserSchema, \
-    UpdateUserSchema, EmptySchema, \
-    UpdateUserRoleSchema
 from api.auth import token_auth
-from api.enums import Role, Action
 from api.decorators import paginated_response
+from api.enums import Action
+from api.enums import Role
+from api.models import Account
+from api.models import ChangeLog
+from api.models import User
+from api.schemas import AccountSchema
+from api.schemas import EmptySchema
+from api.schemas import UpdateUserRoleSchema
+from api.schemas import UpdateUserSchema
+from api.schemas import UserSchema
 
 admin = Blueprint('admin', __name__)
 user_schema = UserSchema()
@@ -38,8 +46,10 @@ def all_account():
 
 @admin.route('/accounts/<int:id>/activate', methods=['POST'])
 @authenticate(token_auth, role=[Role.ADMIN.value])
-@response(EmptySchema, status_code=204,
-          description='User activated successfully.')
+@response(
+    EmptySchema, status_code=204,
+    description='User activated successfully.',
+)
 @other_responses({404: 'Account not found', 409: 'Account already activated'})
 def activate_account(id):
     """Activate the account"""
@@ -66,7 +76,7 @@ def activate_account(id):
         requester_id=requester.id,
         attribute_name='activated',
         old_value=prev,
-        new_value=account.activated
+        new_value=account.activated,
     )
 
     # Save data
@@ -76,10 +86,14 @@ def activate_account(id):
 
 @admin.route('/accounts/<int:id>/deactivate', methods=['POST'])
 @authenticate(token_auth, role=[Role.ADMIN.value])
-@response(EmptySchema, status_code=204,
-          description='Account deactivated successfully.')
-@other_responses({404: 'Account not found',
-                  409: 'Account already deactivated'})
+@response(
+    EmptySchema, status_code=204,
+    description='Account deactivated successfully.',
+)
+@other_responses({
+    404: 'Account not found',
+    409: 'Account already deactivated',
+})
 def deactivate_account(id):
     """Deactivate the account"""
 
@@ -105,7 +119,7 @@ def deactivate_account(id):
         requester_id=requester.id,
         attribute_name='activated',
         old_value=prev,
-        new_value=account.activated
+        new_value=account.activated,
     )
 
     # Save data
@@ -116,11 +130,15 @@ def deactivate_account(id):
 @admin.route('/users/<int:id>/setrole', methods=['PUT'])
 @authenticate(token_auth, role=[Role.ADMIN.value])
 @body(update_user_role)
-@response(EmptySchema, status_code=204,
-          description='User role set successfully.')
-@other_responses({400: 'Role does not exist',
-                  404: 'User not found',
-                  409: "User already set to the role specified"})
+@response(
+    EmptySchema, status_code=204,
+    description='User role set successfully.',
+)
+@other_responses({
+    400: 'Role does not exist',
+    404: 'User not found',
+    409: 'User already set to the role specified',
+})
 def setRole(data, id):
     """Set a specific role for the user"""
 
@@ -148,7 +166,7 @@ def setRole(data, id):
         requester_id=requester.id,
         attribute_name='activated',
         old_value=prev,
-        new_value=user.role
+        new_value=user.role,
     )
 
     # Save data
@@ -174,13 +192,19 @@ def modifyUserInfo(data, id):
 
     # Setup
     user = db.session.get(User, id) or abort(404)
-    prev = {key: getattr(user, key) for key in dict(data).keys()}
+    prev = {
+        key: getattr(user, key)
+        for key in dict(data).keys()
+        if key != 'password'
+    }
+    if 'password' in data:
+        prev['password_hash'] = user.password_hash
 
     # Modification
     user.update(data)
 
     # Track changes
-    for key in dict(data).keys():
+    for key in prev.keys():
         if getattr(user, key) is not None:
             change = ChangeLog(
                 object_type=type(user).__name__,
@@ -189,7 +213,7 @@ def modifyUserInfo(data, id):
                 requester_id=requester.id,
                 attribute_name=key,
                 old_value=prev[key],
-                new_value=getattr(user, key)
+                new_value=getattr(user, key),
             )
             db.session.add(change)
 
@@ -200,11 +224,11 @@ def modifyUserInfo(data, id):
 
 @admin.route('/accounts/<int:id>', methods=['PUT'])
 @authenticate(token_auth, role=[Role.ADMIN.value])
-@body(update_user_schema)
+@body(account_schema)
 @response(user_schema)
 @other_responses({404: 'User not found'})
 def modifyAccountInfo(data, id):
-    """Modify information for the user
+    """Modify information for the account
     Allow admin to modify user table of the database.
     **Use this power wisely**.
 
@@ -216,7 +240,10 @@ def modifyAccountInfo(data, id):
 
     # Setup
     account = db.session.get(Account, id) or abort(404)
-    prev = {key: getattr(Account, key) for key in dict(data).keys()}
+    prev = {
+        key: getattr(Account, key)
+        for key in dict(data).keys()
+    }
 
     # Modification
     account.update(data)
@@ -231,7 +258,7 @@ def modifyAccountInfo(data, id):
                 requester_id=requester.id,
                 attribute_name=key,
                 old_value=prev[key],
-                new_value=getattr(account, key)
+                new_value=getattr(account, key),
             )
             db.session.add(change)
 
@@ -263,7 +290,8 @@ def get_by_username(account_name):
 
     user = token_auth.current_user()
     account = db.session.scalar(
-        Account.select().filter_by(name=account_name)) or \
+        Account.select().filter_by(name=account_name),
+    ) or \
         abort(404)
 
     if account.owner_id != user.id:

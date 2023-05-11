@@ -1,14 +1,20 @@
 from functools import wraps
-from flask import abort
-from apifairy import arguments, response
+
 import sqlalchemy as sqla
+from apifairy import arguments
+from apifairy import response
+from flask import abort
+
 from api.app import db
-from api.schemas import StringPaginationSchema, PaginatedCollection
+from api.schemas import PaginatedCollection
+from api.schemas import StringPaginationSchema
 
 
-def paginated_response(schema, max_limit=25, order_by=None,
-                       order_direction='asc',
-                       pagination_schema=StringPaginationSchema):
+def paginated_response(
+    schema, max_limit=25, order_by=None,
+    order_direction='asc',
+    pagination_schema=StringPaginationSchema,
+):
     def inner(f):
         @wraps(f)
         def paginate(*args, **kwargs):
@@ -19,8 +25,11 @@ def paginated_response(schema, max_limit=25, order_by=None,
                 o = order_by.desc() if order_direction == 'desc' else order_by
                 select_query = select_query.order_by(o)
 
-            count = db.session.scalar(sqla.select(
-                sqla.func.count()).select_from(select_query.subquery()))
+            count = db.session.scalar(
+                sqla.select(
+                    sqla.func.count(),
+                ).select_from(select_query.subquery()),
+            )
 
             limit = pagination.get('limit', max_limit)
             offset = pagination.get('offset')
@@ -37,9 +46,15 @@ def paginated_response(schema, max_limit=25, order_by=None,
                     order_condition = order_by < after
                     offset_condition = order_by >= after
                 query = select_query.limit(limit).filter(order_condition)
-                offset = db.session.scalar(sqla.select(
-                    sqla.func.count()).select_from(select_query.filter(
-                        offset_condition).subquery()))
+                offset = db.session.scalar(
+                    sqla.select(
+                        sqla.func.count(),
+                    ).select_from(
+                        select_query.filter(
+                            offset_condition,
+                        ).subquery(),
+                    ),
+                )
             else:
                 if offset is None:
                     offset = 0
@@ -49,15 +64,22 @@ def paginated_response(schema, max_limit=25, order_by=None,
                 query = select_query.limit(limit).offset(offset)
 
             data = db.session.scalars(query).all()
-            return {'data': data, 'pagination': {
-                'offset': offset,
-                'limit': limit,
-                'count': len(data),
-                'total': count,
-            }}
+            return {
+                'data': data, 'pagination': {
+                    'offset': offset,
+                    'limit': limit,
+                    'count': len(data),
+                    'total': count,
+                },
+            }
 
         # wrap with APIFairy's arguments and response decorators
-        return arguments(pagination_schema)(response(PaginatedCollection(
-            schema, pagination_schema=pagination_schema))(paginate))
+        return arguments(pagination_schema)(
+            response(
+                PaginatedCollection(
+                    schema, pagination_schema=pagination_schema,
+                ),
+            )(paginate),
+        )
 
     return inner

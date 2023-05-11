@@ -1,12 +1,16 @@
-from flask import Flask, redirect, url_for, request
 from alchemical.flask import Alchemical
-from flask_migrate import Migrate
-from flask_marshmallow import Marshmallow
+from apifairy import APIFairy
+from flask import Flask
+from flask import redirect
+from flask import request
+from flask import url_for
 from flask_cors import CORS
 from flask_mail import Mail
-# import flask_admin
-from apifairy import APIFairy
+from flask_marshmallow import Marshmallow
+from flask_migrate import Migrate
+
 from config import Config
+# import flask_admin
 
 db = Alchemical()
 migrate = Migrate()

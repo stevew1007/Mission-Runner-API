@@ -1,7 +1,9 @@
 from tests.base_test_case import BaseTestCase, TestConfigWithAuth
 # from api.app import db
 # from api.models import Account, ChangeLog
-from api.enums import Role
+from werkzeug.security import generate_password_hash
+from api.enums import Action, Role
+from tests.util import check_last_log_entry
 
 
 class AdminTest(BaseTestCase):
@@ -29,9 +31,9 @@ class AdminTest(BaseTestCase):
         rv = self.client.post('/api/tokens', auth=('publisher', 'publish'))
         assert rv.status_code == 200
         self.publisher_access_token = rv.json['access_token']
-
+        name = 'Qxlt4 14'
         rv = self.client.post('/api/accounts', json={
-            'name': 'nextorian2',
+            'name': name,
             "lp_point": 100
         }, headers={'Authorization': f'Bearer {self.publisher_access_token}'})
         assert rv.status_code == 201
@@ -145,3 +147,49 @@ class AdminTest(BaseTestCase):
         # rv = self.client.post('/api/tokens', auth=('runner', 'running'))
         # assert rv.status_code == 200
         # self.runner_access_token = rv.json['access_token']
+
+    def test_update_user(self):
+        rv = self.client.put(
+            f'/api/admin/users/{self.publihser_user_id}', json={
+                'username': 'publisher2',
+            }, headers={'Authorization': f'Bearer {self.admin_access_token}'})
+        assert rv.status_code == 200
+
+        old = {
+            'username': "publisher",
+        }
+        new = {
+            'username': "publisher2",
+        }
+        check_last_log_entry(
+            n=1, old=old, new=new,
+            object_type='User', object_id=self.publihser_user_id,
+            requester_id=self.admin_id,
+            operation=Action.UPDATE.value
+        )
+
+        user_rv = self.client.get(
+            f"/api/users/{self.publihser_user_id}",
+            headers={'Authorization': f'Bearer {self.publisher_access_token}'})
+        assert rv.status_code == 200
+        assert user_rv.json['username'] == 'publisher2'
+
+    def test_reset_password_by_admin(self):
+        rv = self.client.put(
+            f'/api/admin/users/{self.publihser_user_id}', json={
+                'password': 'publish2',
+            }, headers={'Authorization': f'Bearer {self.admin_access_token}'})
+        assert rv.status_code == 200
+
+        old = {
+            'password': generate_password_hash('publish'),
+        }
+        new = {
+            'password': generate_password_hash('publish2'),
+        }
+        check_last_log_entry(
+            n=1, old=old, new=new,
+            object_type='User', object_id=self.publihser_user_id,
+            requester_id=self.admin_id,
+            operation=Action.UPDATE.value
+        )

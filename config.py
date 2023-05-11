@@ -1,8 +1,14 @@
 import os
+import subprocess
+
 from dotenv import load_dotenv
 
 load_dotenv()
 basedir = os.path.abspath(os.path.dirname(__file__))
+version = subprocess.run(
+    ['git', 'describe', '--tags'],
+    capture_output=True,
+).stdout.decode('utf-8').strip()
 
 
 def as_bool(value):
@@ -22,9 +28,14 @@ class Config:
     DISABLE_AUTH = as_bool(os.environ.get('DISABLE_AUTH'))
     ACCESS_TOKEN_MINUTES = int(os.environ.get('ACCESS_TOKEN_MINUTES') or '15')
     REFRESH_TOKEN_DAYS = int(os.environ.get('REFRESH_TOKEN_DAYS') or '7')
-    REFRESH_TOKEN_IN_COOKIE = as_bool(os.environ.get(
-        'REFRESH_TOKEN_IN_COOKIE') or 'yes')
-    REFRESH_TOKEN_IN_BODY = as_bool(os.environ.get('REFRESH_TOKEN_IN_BODY'))
+    REFRESH_TOKEN_IN_COOKIE = as_bool(
+        os.environ.get(
+            'REFRESH_TOKEN_IN_COOKIE',
+        ),
+    )
+    REFRESH_TOKEN_IN_BODY = as_bool(
+        os.environ.get('REFRESH_TOKEN_IN_BODY') or 'yes',
+    )
     RESET_TOKEN_MINUTES = int(os.environ.get('RESET_TOKEN_MINUTES') or '15')
     PASSWORD_RESET_URL = os.environ.get('PASSWORD_RESET_URL') or \
         'http://localhost:3000/reset'
@@ -33,7 +44,7 @@ class Config:
 
     # API documentation
     APIFAIRY_TITLE = 'Mission Runner API'
-    APIFAIRY_VERSION = '0.1'
+    APIFAIRY_VERSION = version
     APIFAIRY_UI = os.environ.get('DOCS_UI', 'elements')
     APIFAIRY_TAGS = ['tokens', 'users']
 
@@ -43,7 +54,9 @@ class Config:
     MAIL_USE_TLS = as_bool(os.environ.get('MAIL_USE_TLS'))
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
-    MAIL_DEFAULT_SENDER=os.environ.get('MAIL_DEFAULT_SENDER',
-                                       'donotreply@microblog.example.com')
-    
+    MAIL_DEFAULT_SENDER = os.environ.get(
+        'MAIL_DEFAULT_SENDER',
+        'donotreply@microblog.example.com',
+    )
+
     FLASK_ADMIN_SWATCH = 'cerulean'

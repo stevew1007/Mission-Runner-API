@@ -1,7 +1,7 @@
 # import random
 # import click
-from flask import Blueprint
 from faker import Faker
+from flask import Blueprint
 # from api.app import db
 # from api.models import User
 
