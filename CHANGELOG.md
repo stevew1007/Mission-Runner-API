@@ -1,14 +1,44 @@
-# [0.2.0](https://github.com/stevew1007/Mission-Runner-API/compare/v0.1.0...v0.2.0) (2023-04-18)
+## Unreleased
 
+### Feat
 
-### Bug Fixes
+- **mission**: add endpoint to get number of mission in database by state
 
-* merge with remote branch and fix confilcts ([b09ab43](https://github.com/stevew1007/Mission-Runner-API/commit/b09ab43571baff3848d6bae74a2fec446b83388b))
+## v0.3.1 (2023-05-04)
 
+### Fix
 
-### Features
+- **admin**: fix update endpoint for password
 
-* **mission:** Add mission workflow ([54c8995](https://github.com/stevew1007/Mission-Runner-API/commit/54c8995165d84657e248b9d24a5f1fa94d887e37))
+## v0.3.0 (2023-04-30)
+
+### Feat
+
+- **account**: verify account name with esi and save account id
+- **mission**: add endpoint to check for all the mission by user under specific state
+
+### Fix
+
+- **mission**: add ep to get all mission owned
+- **mission**: fix comflit between search by galaxy and state
+
+## v0.1.1 (2023-04-22)
+
+### Fix
+
+- fix test when refresh token was included in body
+- **database**: fix database upgrade issue
+- set refresh token to send in body
+
+## v0.2.0 (2023-04-19)
+
+### Feat
+
+- **mission**: Add mission workflow
+
+### Fix
+
+- merge with remote branch and fix confilcts
 
 ## v0.1.0 (2023-04-17)
 
@@ -17,3 +47,5 @@
 - add user endpoint to get default account info by others
 - add setter and getter endpoint for default_account
 - add default_account property to User
+
+## v0.0.1 (2023-03-25)
