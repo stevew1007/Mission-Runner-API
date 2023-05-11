@@ -466,6 +466,13 @@ class MissionTest(BaseTestCase):
             assert rv.status_code == 200
             mission_data[rv.json['status']].append(rv.json)
 
+        rv = self.client.get(
+            "/api/missions/count",
+            headers={
+                'Authorization': f'Bearer {self.publisher_access_token}'})
+        assert rv.status_code == 200
+        num_mission_by_state = rv.json
+
         for status in Status:
             # get mission by user and state
             rv = self.client.get(
@@ -479,6 +486,9 @@ class MissionTest(BaseTestCase):
                 key=lambda x: x['id']
             )
             assert len(rv_data) == len(mission_data[status.value])
+            if f"num_missions_{status.value}" in num_mission_by_state:
+                assert len(rv_data) == num_mission_by_state[
+                    f"num_missions_{status.value}"]
             # check if the rv.json['data'] have same data as mission_data
             # (only check id for publisher because User.last_seen changes)
             for ret, data in zip(rv_data, mission_data[status.value]):

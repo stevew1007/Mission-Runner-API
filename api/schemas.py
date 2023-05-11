@@ -369,3 +369,12 @@ class PasswordResetSchema(ma.Schema):
 
     token = ma.String(required=True)
     new_password = ma.String(required=True, validate=validate.Length(min=3))
+
+
+class Missions_count_schema(ma.Schema):
+    class Meta:
+        ordered = True
+
+    num_missions_published = ma.Number()
+    num_missions_completed = ma.Number()
+    num_missions_done = ma.Number()

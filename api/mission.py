@@ -20,6 +20,7 @@ from api.schemas import AccountSchema
 from api.schemas import DateTimePaginationSchema
 from api.schemas import EmptySchema
 from api.schemas import MissionMultAcceptsSchema
+from api.schemas import Missions_count_schema
 from api.schemas import MissionSchema
 
 missions = Blueprint('missions', __name__)
@@ -27,6 +28,7 @@ mission_schema = MissionSchema()
 missions_schema = MissionSchema(many=True)
 multiaccept_shema = MissionMultAcceptsSchema()
 update_account_schema = AccountSchema(partial=True)
+missions_count_schema = Missions_count_schema()
 
 
 @missions.route('/accounts/<int:id>/publish_mission', methods=['POST'])
@@ -110,6 +112,28 @@ def get(id):
     """Retrieve a mission by id
     """
     return db.session.get(Mission, id) or abort(404)
+
+
+@missions.route('/missions/count', methods=['GET'])
+@response(missions_count_schema)
+def get_missions_count():
+    """Retrieve count of missions
+    """
+    num_missions_published = db.session.query(
+        Mission,
+    ).filter(Mission.status == 'published').count()
+    num_missions_completed = db.session.query(
+        Mission,
+    ).filter(Mission.status == 'completed').count()
+    num_missions_done = db.session.query(
+        Mission,
+    ).filter(Mission.status == 'done').count()
+    return {
+        'num_missions_published': num_missions_published,
+        'num_missions_completed': num_missions_completed,
+        'num_missions_done': num_missions_done,
+
+    }
 
 
 @missions.route('/missions/galaxy/<galaxy>', methods=['GET'])
